@@ -1,4 +1,3 @@
-```markdown
 # 🐾 PawHealth - Core API & Manager Portal
 
 This repository contains the backend infrastructure for the PawHealth ecosystem. It serves two primary functions: a secure RESTful API that powers the Flutter mobile application, and a Vue.js web portal used by System Managers to oversee the platform and verify veterinarian licenses.
