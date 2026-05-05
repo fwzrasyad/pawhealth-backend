@@ -31,12 +31,13 @@ class PetController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'    => 'required|string|max:255',
-            'species' => 'required|string|max:100',
-            'breed'   => 'required|string|max:100',
-            'age'     => 'required|integer|min:0',
-            'gender'  => 'required|string|max:20',
-            'weight'  => 'required|numeric|min:0',
+            'name'              => 'required|string|max:255',
+            'species'           => 'required|string|max:100',
+            'breed'             => 'required|string|max:100',
+            'age'               => 'required|integer|min:0',
+            'gender'            => 'required|string|max:20',
+            'weight'            => 'required|numeric|min:0',
+            'profile_image_url' => 'nullable|string|url|max:2048',
         ]);
 
         $pet = $request->user()->pets()->create($validated);
@@ -71,12 +72,13 @@ class PetController extends Controller
             ->firstOrFail();
 
         $validated = $request->validate([
-            'name'    => 'sometimes|string|max:255',
-            'species' => 'sometimes|string|max:100',
-            'breed'   => 'sometimes|string|max:100',
-            'age'     => 'sometimes|integer|min:0',
-            'gender'  => 'sometimes|string|max:20',
-            'weight'  => 'sometimes|numeric|min:0',
+            'name'              => 'sometimes|string|max:255',
+            'species'           => 'sometimes|string|max:100',
+            'breed'             => 'sometimes|string|max:100',
+            'age'               => 'sometimes|integer|min:0',
+            'gender'            => 'sometimes|string|max:20',
+            'weight'            => 'sometimes|numeric|min:0',
+            'profile_image_url' => 'nullable|string|url|max:2048',
         ]);
 
         $pet->update($validated);

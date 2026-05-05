@@ -24,6 +24,7 @@ class Pet extends Model
         'age',
         'gender',
         'weight',
+        'profile_image_url',
     ];
 
     protected function casts(): array
