@@ -3,10 +3,12 @@
 use App\Http\Controllers\Api\AIScanController;
 use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\DailyRoutineLogController;
+use App\Http\Controllers\Api\ClinicController;
+use App\Http\Controllers\Api\HealthJournalController;
 use App\Http\Controllers\Api\MedicalRecordController;
 use App\Http\Controllers\Api\PetController;
 use App\Http\Controllers\Api\ManagerController;
+use App\Http\Controllers\Api\SuperAdminController;
 use App\Http\Controllers\Api\VeterinarianController;
 use Illuminate\Support\Facades\Route;
 
@@ -14,10 +16,17 @@ use Illuminate\Support\Facades\Route;
 
 
 
+// Public manager registration
+Route::post('/manager/register', [ManagerController::class, 'registerClinic']);
+
 Route::middleware('firebase.auth')->group(function () {
 
     // ── Auth ──
     Route::post('/auth/sync', [AuthController::class , 'sync']);
+
+    // ── Clinics ──
+    Route::get('/clinics', [ClinicController::class, 'index']);
+    Route::get('/clinics/{clinicId}/vets', [ClinicController::class, 'getVets']);
 
     // ── Pets (CRUD) ──
     Route::get('/pets', [PetController::class , 'index']);
@@ -26,9 +35,9 @@ Route::middleware('firebase.auth')->group(function () {
     Route::put('/pets/{petId}', [PetController::class , 'update']);
     Route::delete('/pets/{petId}', [PetController::class , 'destroy']);
 
-    // ── Daily Routines (nested under pets) ──
-    Route::get('/pets/{petId}/daily-routines', [DailyRoutineLogController::class , 'index']);
-    Route::post('/pets/{petId}/daily-routines', [DailyRoutineLogController::class , 'store']);
+    // ── Health Journals (nested under pets — targeted acute recovery) ──
+    Route::get('/pets/{petId}/health-journals', [HealthJournalController::class , 'index']);
+    Route::post('/pets/{petId}/health-journals', [HealthJournalController::class , 'store']);
 
     // ── Medical Records (nested index under pets, standalone store/update) ──
     Route::get('/pets/{petId}/medical-records', [MedicalRecordController::class , 'index']);
@@ -59,6 +68,16 @@ Route::middleware('firebase.auth')->group(function () {
         Route::delete('/users/{id}', [ManagerController::class, 'deleteUser']);
         Route::get('/users/{id}/pets', [ManagerController::class, 'userPets']);
         Route::get('/veterinarians', [ManagerController::class, 'listVeterinarians']);
+        Route::post('/veterinarians', [ManagerController::class, 'storeVeterinarian']);
         Route::put('/veterinarians/{id}', [ManagerController::class, 'updateVeterinarian']);
+        Route::put('/appointments/{id}/assign', [ManagerController::class, 'assignVet']);
+        Route::get('/appointments', [ManagerController::class, 'listAppointments']);
+    });
+
+    // ── Super Admin Portal ──
+    Route::prefix('admin')->middleware('super_admin')->group(function () {
+        Route::get('/pending-clinics', [SuperAdminController::class, 'pendingClinics']);
+        Route::patch('/clinics/{clinic}/approve', [SuperAdminController::class, 'approve']);
+        Route::patch('/clinics/{clinic}/reject', [SuperAdminController::class, 'reject']);
     });
 });

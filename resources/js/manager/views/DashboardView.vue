@@ -22,16 +22,16 @@ onMounted(async () => {
             <!-- Page Header -->
             <div>
                 <h2 class="text-2xl font-bold text-slate-900">Dashboard Overview</h2>
-                <p class="mt-1 text-sm text-slate-500">Welcome back! Here's what's happening with PawHealth today.</p>
+                <p class="mt-1 text-sm text-slate-500">Welcome back! Here's what's happening at your clinic today.</p>
             </div>
 
             <!-- Stat Cards Grid -->
             <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
                 <!-- Total Users -->
                 <StatCard
-                    title="Total Users"
+                    title="Clinic Patients"
                     :value="stats?.total_users ?? '—'"
-                    subtitle="Registered pet owners"
+                    subtitle="Your clinic's pet owners"
                     color="violet"
                     :loading="loading"
                 >
@@ -44,7 +44,7 @@ onMounted(async () => {
 
                 <!-- Total Vets -->
                 <StatCard
-                    title="Total Veterinarians"
+                    title="Clinic Veterinarians"
                     :value="stats?.total_vets ?? '—'"
                     :subtitle="stats ? `${stats.approved_vets ?? 0} approved, ${stats.pending_vets ?? 0} pending` : ''"
                     color="emerald"
@@ -59,9 +59,9 @@ onMounted(async () => {
 
                 <!-- Total Pets -->
                 <StatCard
-                    title="Total Pets"
+                    title="Clinic Pets"
                     :value="stats?.total_pets ?? '—'"
-                    subtitle="Registered across all owners"
+                    subtitle="Registered at your clinic"
                     color="amber"
                     :loading="loading"
                 >
@@ -124,17 +124,20 @@ onMounted(async () => {
                         </div>
                     </router-link>
 
-                    <div class="group flex items-center gap-4 rounded-xl border border-dashed border-slate-200 p-4 opacity-50">
-                        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
+                    <router-link
+                        to="/manager/appointments"
+                        class="group flex items-center gap-4 rounded-xl border border-slate-200 p-4 transition-all hover:border-violet-200 hover:bg-violet-50/50 hover:shadow-sm"
+                    >
+                        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-100 text-sky-600 transition-transform group-hover:scale-110">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
                             </svg>
                         </div>
                         <div>
-                            <p class="text-sm font-medium text-slate-400">More coming soon</p>
-                            <p class="text-xs text-slate-300">Additional features in progress</p>
+                            <p class="text-sm font-medium text-slate-700">Manage Appointments</p>
+                            <p class="text-xs text-slate-400">Assign vets to pending bookings</p>
                         </div>
-                    </div>
+                    </router-link>
                 </div>
             </div>
         </div>

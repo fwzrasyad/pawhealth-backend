@@ -17,6 +17,7 @@ class Appointment extends Model
 
     protected $fillable = [
         'appointment_id',
+        'clinic_id',
         'pet_id',
         'pet_name',
         'vet_id',
@@ -46,6 +47,11 @@ class Appointment extends Model
 
     // ── Relationships ──
 
+    public function clinic()
+    {
+        return $this->belongsTo(Clinic::class, 'clinic_id', 'clinic_id');
+    }
+
     public function pet()
     {
         return $this->belongsTo(Pet::class, 'pet_id', 'pet_id');
@@ -54,5 +60,10 @@ class Appointment extends Model
     public function veterinarian()
     {
         return $this->belongsTo(Veterinarian::class, 'vet_id', 'vet_id');
+    }
+
+    public function medicalRecord()
+    {
+        return $this->hasOne(MedicalRecord::class, 'appointment_id', 'appointment_id');
     }
 }

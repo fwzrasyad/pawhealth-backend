@@ -61,9 +61,9 @@ class Pet extends Model
         return $this->hasMany(MedicalRecord::class, 'pet_id', 'pet_id');
     }
 
-    public function dailyRoutineLogs()
+    public function healthJournals()
     {
-        return $this->hasMany(DailyRoutineLog::class, 'pet_id', 'pet_id');
+        return $this->hasMany(HealthJournal::class, 'pet_id', 'pet_id');
     }
 
     public function aiScans()

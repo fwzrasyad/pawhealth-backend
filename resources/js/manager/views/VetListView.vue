@@ -10,6 +10,24 @@ const loading = ref(true);
 const search  = ref('');
 const updating = ref(null); // vet_id currently being updated
 
+// Register Modal State
+const showRegisterModal = ref(false);
+const registerLoading = ref(false);
+const registerError = ref(null);
+const registerForm = ref({
+    name: '',
+    email: '',
+    phone_number: '',
+    password: '',
+    specialties: ''
+});
+
+const toastMessage = ref(null);
+function showToast(msg) {
+    toastMessage.value = msg;
+    setTimeout(() => { toastMessage.value = null; }, 3000);
+}
+
 // Filter vets by search term
 const filteredVets = computed(() => {
     if (!search.value) return vets.value;
@@ -57,6 +75,32 @@ function statusColor(status) {
         default:          return 'bg-slate-50 text-slate-700 ring-slate-600/10';
     }
 }
+
+async function registerVeterinarian() {
+    registerLoading.value = true;
+    registerError.value = null;
+
+    const { data, error } = await api.post('/veterinarians', registerForm.value);
+
+    if (error) {
+        registerError.value = error;
+        registerLoading.value = false;
+        return;
+    }
+
+    // Success
+    showRegisterModal.value = false;
+    registerForm.value = { name: '', email: '', phone_number: '', password: '', specialties: '' };
+    
+    if (data?.data) {
+        vets.value.unshift(data.data);
+    } else {
+        await fetchVets();
+    }
+    
+    showToast('Veterinarian registered successfully.');
+    registerLoading.value = false;
+}
 </script>
 
 <template>
@@ -69,7 +113,7 @@ function statusColor(status) {
                     <p class="mt-1 text-sm text-slate-500">Manage and approve veterinarian accounts.</p>
                 </div>
 
-                <!-- Summary badges -->
+                <!-- Summary badges & Action -->
                 <div class="flex items-center gap-3">
                     <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/10">
                         <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
@@ -79,6 +123,15 @@ function statusColor(status) {
                         <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
                         {{ pendingCount }} Pending
                     </span>
+                    <button
+                        @click="showRegisterModal = true"
+                        class="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 transition-all"
+                    >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                        Register New Veterinarian
+                    </button>
                 </div>
             </div>
 
@@ -221,5 +274,80 @@ function statusColor(status) {
                 </div>
             </div>
         </div>
+
+        <!-- Register Modal -->
+        <div v-if="showRegisterModal" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"></div>
+            <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                    <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                        <form @submit.prevent="registerVeterinarian">
+                            <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                                <div class="sm:flex sm:items-start">
+                                    <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-violet-100 sm:mx-0 sm:h-10 sm:w-10">
+                                        <svg class="h-6 w-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" />
+                                        </svg>
+                                    </div>
+                                    <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                                        <h3 class="text-lg font-semibold leading-6 text-gray-900" id="modal-title">Register Veterinarian</h3>
+                                        <div class="mt-4 space-y-4">
+                                            <div v-if="registerError" class="rounded-md bg-red-50 p-3 text-sm text-red-600 border border-red-100">
+                                                {{ registerError }}
+                                            </div>
+
+                                            <div>
+                                                <label class="block text-sm font-medium leading-6 text-gray-900">Name</label>
+                                                <input v-model="registerForm.name" type="text" required class="mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-violet-600 sm:text-sm sm:leading-6 px-3" />
+                                            </div>
+
+                                            <div>
+                                                <label class="block text-sm font-medium leading-6 text-gray-900">Email</label>
+                                                <input v-model="registerForm.email" type="email" required class="mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-violet-600 sm:text-sm sm:leading-6 px-3" />
+                                            </div>
+
+                                            <div>
+                                                <label class="block text-sm font-medium leading-6 text-gray-900">Phone Number</label>
+                                                <input v-model="registerForm.phone_number" type="text" required class="mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-violet-600 sm:text-sm sm:leading-6 px-3" />
+                                            </div>
+
+                                            <div>
+                                                <label class="block text-sm font-medium leading-6 text-gray-900">Temporary Password</label>
+                                                <input v-model="registerForm.password" type="password" required minlength="6" class="mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-violet-600 sm:text-sm sm:leading-6 px-3" />
+                                            </div>
+
+                                            <div>
+                                                <label class="block text-sm font-medium leading-6 text-gray-900">Specialties</label>
+                                                <input v-model="registerForm.specialties" type="text" required placeholder="e.g. General Practice, Surgery" class="mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-violet-600 sm:text-sm sm:leading-6 px-3" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                                <button type="submit" :disabled="registerLoading" class="inline-flex w-full justify-center rounded-md bg-violet-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-500 disabled:opacity-50 sm:ml-3 sm:w-auto">
+                                    <div v-if="registerLoading" class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mt-0.5"></div>
+                                    Register
+                                </button>
+                                <button type="button" @click="showRegisterModal = false" :disabled="registerLoading" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div v-if="toastMessage" class="fixed bottom-4 right-4 z-50">
+            <div class="flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-3 text-sm font-medium text-white shadow-xl">
+                <svg class="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {{ toastMessage }}
+            </div>
+        </div>
+
     </ManagerLayout>
 </template>

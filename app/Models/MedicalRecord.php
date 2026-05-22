@@ -19,18 +19,17 @@ class MedicalRecord extends Model
         'record_id',
         'pet_id',
         'vet_id',
+        'appointment_id',
         'diagnosis',
-        'treatment',
-        'vaccination_date',
-        'next_due_date',
-        'attachment_url',
+        'doctor_notes',
+        'medications_prescribed',
+        'follow_up_instructions',
     ];
 
     protected function casts(): array
     {
         return [
-            'vaccination_date' => 'date',
-            'next_due_date'    => 'date',
+            'medications_prescribed' => 'array',
         ];
     }
 
@@ -53,5 +52,10 @@ class MedicalRecord extends Model
     public function veterinarian()
     {
         return $this->belongsTo(Veterinarian::class, 'vet_id', 'vet_id');
+    }
+
+    public function appointment()
+    {
+        return $this->belongsTo(Appointment::class, 'appointment_id', 'appointment_id');
     }
 }

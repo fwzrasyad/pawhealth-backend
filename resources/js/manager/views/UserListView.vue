@@ -95,8 +95,8 @@ function formatDate(iso) {
         <div class="space-y-6">
             <!-- Page Header -->
             <div>
-                <h2 class="text-2xl font-bold text-slate-900">Users & Pets</h2>
-                <p class="mt-1 text-sm text-slate-500">View registered pet owners and their pets.</p>
+                <h2 class="text-2xl font-bold text-slate-900">Your Clinic's Patients</h2>
+                <p class="mt-1 text-sm text-slate-500">Pet owners who have booked appointments at your clinic.</p>
             </div>
 
             <!-- Search Bar -->

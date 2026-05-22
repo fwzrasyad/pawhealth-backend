@@ -22,6 +22,7 @@ class User extends Authenticatable
         'password',
         'role',
         'phone_number',
+        'clinic_id',
     ];
 
     protected $hidden = [
@@ -36,6 +37,11 @@ class User extends Authenticatable
     }
 
     // ── Relationships ──
+
+    public function clinic()
+    {
+        return $this->belongsTo(Clinic::class, 'clinic_id', 'clinic_id');
+    }
 
     public function pets()
     {

@@ -7,7 +7,12 @@ import { onAuthStateChanged } from 'firebase/auth';
 import LoginView     from './views/LoginView.vue';
 import DashboardView from './views/DashboardView.vue';
 import VetListView   from './views/VetListView.vue';
-import UserListView  from './views/UserListView.vue';
+import UserListView       from './views/UserListView.vue';
+import AppointmentsView   from './views/AppointmentsView.vue';
+import PendingVerificationView from './views/PendingVerificationView.vue';
+import RegisterView from './views/RegisterView.vue';
+import SuperAdminDashboard from './views/SuperAdminDashboard.vue';
+import { useApi } from './composables/useApi.js';
 
 const routes = [
     {
@@ -15,6 +20,18 @@ const routes = [
         name: 'Login',
         component: LoginView,
         meta: { requiresAuth: false },
+    },
+    {
+        path: '/manager/register',
+        name: 'Register',
+        component: RegisterView,
+        meta: { requiresAuth: false },
+    },
+    {
+        path: '/manager/pending-verification',
+        name: 'PendingVerification',
+        component: PendingVerificationView,
+        meta: { requiresAuth: true, allowPending: true },
     },
     {
         path: '/manager',
@@ -33,6 +50,19 @@ const routes = [
         name: 'Users',
         component: UserListView,
         meta: { requiresAuth: true },
+    },
+    {
+        path: '/manager/appointments',
+        name: 'Appointments',
+        component: AppointmentsView,
+        meta: { requiresAuth: true },
+    },
+    // ── Super Admin ──
+    {
+        path: '/super-admin',
+        name: 'SuperAdmin',
+        component: SuperAdminDashboard,
+        meta: { requiresAuth: true, requiresSuperAdmin: true },
     },
     // Redirect unknown manager paths to dashboard
     {
@@ -57,6 +87,17 @@ function getCurrentUser() {
     });
 }
 
+// Cache user data to avoid excessive /auth/sync calls
+let cachedUserData = null;
+
+async function fetchUserData(api) {
+    const { data } = await api.absPost('/api/auth/sync');
+    if (data && data.data) {
+        cachedUserData = data.data;
+    }
+    return cachedUserData;
+}
+
 router.beforeEach(async (to) => {
     const requiresAuth = to.meta.requiresAuth !== false;
     const currentUser  = await getCurrentUser();
@@ -64,8 +105,44 @@ router.beforeEach(async (to) => {
     if (requiresAuth && !currentUser) {
         return { name: 'Login' };
     }
-    if (!requiresAuth && currentUser && to.name === 'Login') {
+
+    if (!requiresAuth && currentUser && (to.name === 'Login' || to.name === 'Register')) {
         return { name: 'Dashboard' };
+    }
+
+    // For authenticated routes, fetch user data once per navigation
+    if (currentUser && requiresAuth) {
+        const api = useApi();
+        const user = await fetchUserData(api);
+
+        if (!user) return;
+
+        // Super Admin route guard
+        if (to.meta.requiresSuperAdmin) {
+            if (user.role !== 'super_admin') {
+                // Non-super-admins cannot access this route
+                return { name: 'Dashboard' };
+            }
+            // Super admins can proceed
+            return;
+        }
+
+        // If super_admin is trying to access manager routes, redirect to their dashboard
+        if (user.role === 'super_admin' && to.name !== 'SuperAdmin') {
+            return { name: 'SuperAdmin' };
+        }
+
+        // Manager quarantine check
+        if (user.role === 'manager' && user.clinic?.status === 'pending' && to.name !== 'PendingVerification') {
+            return { name: 'PendingVerification' };
+        }
+
+        // Block approved managers from accessing pending-verification
+        if (to.name === 'PendingVerification') {
+            if (user.role !== 'manager' || user.clinic?.status !== 'pending') {
+                return { name: 'Dashboard' };
+            }
+        }
     }
 });
 

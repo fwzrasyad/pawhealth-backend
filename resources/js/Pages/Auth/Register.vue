@@ -22,7 +22,12 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Register" />
+        <Head title="PawHealth Clinic Registration" />
+        
+        <div class="mb-4 text-center">
+            <h2 class="text-xl font-bold text-gray-900">PawHealth Partner Registration</h2>
+            <p class="text-sm text-gray-600">Register your clinic to join our platform.</p>
+        </div>
 
         <form @submit.prevent="submit">
             <div>

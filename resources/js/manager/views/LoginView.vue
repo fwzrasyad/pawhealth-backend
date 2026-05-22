@@ -17,6 +17,20 @@ async function handleLogin() {
 
     try {
         await signInWithEmailAndPassword(auth, email.value, password.value);
+        
+        // Fetch local user data to check clinic status
+        const { useApi } = await import('../composables/useApi.js');
+        const api = useApi();
+        const { data } = await api.absPost('/api/auth/sync');
+
+        if (data && data.data) {
+            const user = data.data;
+            if (user.role === 'manager' && user.clinic?.status === 'pending') {
+                router.push('/manager/pending-verification');
+                return;
+            }
+        }
+        
         router.push('/manager');
     } catch (err) {
         const messages = {
@@ -131,6 +145,10 @@ async function handleLogin() {
 
             <p class="mt-6 text-center text-xs text-slate-600">
                 PawHealth &copy; {{ new Date().getFullYear() }} — Manager Portal
+            </p>
+            <p class="mt-4 text-center text-sm text-slate-400">
+                Don't have an account? 
+                <router-link to="/manager/register" class="text-violet-400 font-medium hover:text-violet-300 transition-colors">Register your clinic</router-link>
             </p>
         </div>
     </div>

@@ -22,12 +22,14 @@ class AppointmentController extends Controller
 
         if ($user->role === 'vet') {
             $appointments = Appointment::where('vet_id', $user->user_id)
+                ->with('medicalRecord')
                 ->orderByDesc('appointment_date')
                 ->get();
         } else {
             // Owner: get appointments for all their pets
             $petIds = $user->pets()->pluck('pet_id');
             $appointments = Appointment::whereIn('pet_id', $petIds)
+                ->with('medicalRecord')
                 ->orderByDesc('appointment_date')
                 ->get();
         }
@@ -37,11 +39,12 @@ class AppointmentController extends Controller
 
     /**
      * POST /api/appointments
-     * Book a new appointment.
+     * Book a new appointment at a specific clinic with a specific vet.
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'clinic_id'        => 'required|string|exists:clinics,clinic_id',
             'pet_id'           => 'required|string|exists:pets,pet_id',
             'pet_name'         => 'required|string|max:255',
             'vet_id'           => 'required|string|exists:veterinarians,vet_id',
@@ -49,10 +52,25 @@ class AppointmentController extends Controller
             'reason'           => 'required|string',
             'appointment_date' => 'required|date',
             'time_slot'        => 'required|date',
-            'status'           => 'sometimes|in:pending,confirmed,completed,cancelled',
         ]);
 
-        $appointment = Appointment::create($validated);
+        $timeSlot = \Carbon\Carbon::parse($validated['time_slot']);
+        if ($timeSlot->isPast()) {
+            return response()->json(['message' => 'Cannot book an appointment in the past.'], 422);
+        }
+
+        $isTaken = Appointment::where('vet_id', $validated['vet_id'])
+            ->where('time_slot', $validated['time_slot'])
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->exists();
+
+        if ($isTaken) {
+            return response()->json(['message' => 'This time slot is already booked.'], 422);
+        }
+
+        $appointment = Appointment::create(array_merge($validated, [
+            'status' => 'pending',
+        ]));
 
         return new AppointmentResource($appointment);
     }

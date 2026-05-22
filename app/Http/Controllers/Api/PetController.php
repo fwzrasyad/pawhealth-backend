@@ -18,7 +18,7 @@ class PetController extends Controller
     {
         $pets = $request->user()
             ->pets()
-            ->with('dailyRoutineLogs')
+            ->with('healthJournals')
             ->get();
 
         return PetResource::collection($pets);
@@ -53,7 +53,7 @@ class PetController extends Controller
     {
         $pet = $request->user()
             ->pets()
-            ->with('dailyRoutineLogs')
+            ->with('healthJournals')
             ->where('pet_id', $petId)
             ->firstOrFail();
 

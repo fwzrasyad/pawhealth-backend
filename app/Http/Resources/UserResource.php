@@ -17,6 +17,13 @@ class UserResource extends JsonResource
             'phone_number' => $this->phone_number,
             'created_at'   => $this->created_at?->toIso8601String(),
             'updated_at'   => $this->updated_at?->toIso8601String(),
+            'clinic'       => $this->whenLoaded('clinic', function () {
+                return [
+                    'clinic_id' => $this->clinic->clinic_id,
+                    'name'      => $this->clinic->name,
+                    'status'    => $this->clinic->status,
+                ];
+            }),
         ];
     }
 }

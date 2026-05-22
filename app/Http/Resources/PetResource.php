@@ -19,7 +19,7 @@ class PetResource extends JsonResource
             'gender'            => $this->gender,
             'weight'            => $this->weight,
             'profile_image_url' => $this->profile_image_url,
-            'daily_routines'    => DailyRoutineLogResource::collection($this->whenLoaded('dailyRoutineLogs')),
+            'health_journals'   => HealthJournalResource::collection($this->whenLoaded('healthJournals')),
             'created_at'        => $this->created_at?->toIso8601String(),
             'updated_at'        => $this->updated_at?->toIso8601String(),
         ];

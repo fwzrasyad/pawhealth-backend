@@ -12,32 +12,128 @@ use App\Models\User;
 use App\Models\Veterinarian;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Kreait\Firebase\Exception\AuthException;
+use Kreait\Firebase\Exception\FirebaseException;
 
 class ManagerController extends Controller
 {
     /**
-     * GET /api/manager/stats
-     * Dashboard statistics for the manager portal.
+     * POST /api/manager/register
+     * Register a new clinic and its manager.
      */
-    public function dashboardStats()
+    public function registerClinic(Request $request)
     {
+        $validated = $request->validate([
+            'name'         => 'required|string|max:255',
+            'email'        => 'required|email|unique:users,email',
+            'address'      => 'required|string|max:255',
+            'city'         => 'required|string|max:100',
+            'state'        => 'required|string|max:100',
+            'phone'        => 'nullable|string|max:50',
+            'password'     => 'required|string|min:6',
+            'license_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
+        ]);
+
+        $auth = app('firebase.auth');
+
+        try {
+            $firebaseUser = $auth->createUser([
+                'email'       => $validated['email'],
+                'password'    => $validated['password'],
+                'displayName' => $validated['name'],
+            ]);
+        } catch (AuthException | FirebaseException $e) {
+            return response()->json(['message' => 'Firebase Auth Error: ' . $e->getMessage()], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Store the uploaded license file
+            $licensePath = $request->file('license_file')
+                ->store('licenses', 'public');
+
+            $clinic = \App\Models\Clinic::create([
+                'name'              => $validated['name'],
+                'address'           => $validated['address'],
+                'city'              => $validated['city'],
+                'state'             => $validated['state'],
+                'phone'             => $validated['phone'] ?? '',
+                'status'            => 'pending',
+                'license_file_path' => $licensePath,
+            ]);
+
+            $user = User::create([
+                'user_id'   => $firebaseUser->uid,
+                'name'      => $validated['name'],
+                'email'     => $validated['email'],
+                'password'  => Hash::make($validated['password']),
+                'role'      => 'manager',
+                'clinic_id' => $clinic->clinic_id,
+            ]);
+
+            DB::commit();
+
+            return response()->json(['message' => 'Registration successful'], Response::HTTP_CREATED);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            try {
+                $auth->deleteUser($firebaseUser->uid);
+            } catch (\Throwable $deleteEx) {}
+            return response()->json(['message' => 'Local database error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * GET /api/manager/stats
+     * Dashboard statistics scoped to the manager's own clinic.
+     */
+    public function dashboardStats(Request $request)
+    {
+        $clinicId = $request->user()->clinic_id;
+
+        // Vet user IDs belonging to this clinic
+        $vetIds = User::where('clinic_id', $clinicId)
+            ->where('role', 'vet')
+            ->pluck('user_id');
+
+        // Owners who have at least one pet with an appointment at this clinic
+        $clinicOwnerCount = User::where('role', 'owner')
+            ->whereHas('pets.appointments', function ($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId);
+            })->count();
+
+        // Pets that have at least one appointment at this clinic
+        $clinicPetCount = Pet::whereHas('appointments', function ($q) use ($clinicId) {
+            $q->where('clinic_id', $clinicId);
+        })->count();
+
         return response()->json([
-            'total_users'          => User::where('role', 'owner')->count(),
-            'total_vets'           => Veterinarian::count(),
-            'total_pets'           => Pet::count(),
-            'pending_appointments' => Appointment::where('status', 'pending')->count(),
-            'approved_vets'        => Veterinarian::where('status', 'approved')->count(),
-            'pending_vets'         => Veterinarian::where('status', 'pending')->count(),
+            'total_users'          => $clinicOwnerCount,
+            'total_vets'           => Veterinarian::whereIn('vet_id', $vetIds)->count(),
+            'total_pets'           => $clinicPetCount,
+            'pending_appointments' => Appointment::where('clinic_id', $clinicId)->where('status', 'pending')->count(),
+            'approved_vets'        => Veterinarian::whereIn('vet_id', $vetIds)->where('status', 'approved')->count(),
+            'pending_vets'         => Veterinarian::whereIn('vet_id', $vetIds)->where('status', 'pending')->count(),
         ]);
     }
 
     /**
      * GET /api/manager/users
-     * List all pet-owner users with pet count.
+     * List pet-owner users who have at least one pet with an appointment at this clinic.
+     * SECURITY: Strict multi-tenant scoping — no global queries.
      */
-    public function listUsers()
+    public function listUsers(Request $request)
     {
+        $clinicId = $request->user()->clinic_id;
+
         $users = User::where('role', 'owner')
+            ->whereHas('pets.appointments', function ($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId);
+            })
             ->withCount('pets')
             ->orderByDesc('created_at')
             ->get();
@@ -60,12 +156,27 @@ class ManagerController extends Controller
 
     /**
      * GET /api/manager/users/{id}/pets
-     * List pets for a specific user.
+     * List pets for a specific user, only if they have appointments at this clinic.
+     * SECURITY: Strict multi-tenant scoping.
      */
-    public function userPets(string $id)
+    public function userPets(Request $request, string $id)
     {
-        $user = User::where('user_id', $id)->firstOrFail();
-        $pets = $user->pets()->get();
+        $clinicId = $request->user()->clinic_id;
+
+        // Ensure the user has at least one pet with an appointment at this clinic
+        $user = User::where('user_id', $id)
+            ->where('role', 'owner')
+            ->whereHas('pets.appointments', function ($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId);
+            })
+            ->firstOrFail();
+
+        // Return only pets that have appointments at this clinic
+        $pets = $user->pets()
+            ->whereHas('appointments', function ($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId);
+            })
+            ->get();
 
         return PetResource::collection($pets);
     }
@@ -73,16 +184,25 @@ class ManagerController extends Controller
     /**
      * DELETE /api/manager/users/{id}
      * Delete a user and their associated data.
+     * SECURITY: Only allow deletion of users who have appointments at this clinic.
      */
-    public function deleteUser(string $id)
+    public function deleteUser(Request $request, string $id)
     {
-        $user = User::where('user_id', $id)->firstOrFail();
+        $clinicId = $request->user()->clinic_id;
+
+        // Ensure the user is a patient of this clinic
+        $user = User::where('user_id', $id)
+            ->where('role', 'owner')
+            ->whereHas('pets.appointments', function ($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId);
+            })
+            ->firstOrFail();
 
         // Cascade: delete user's pets (and related records)
         foreach ($user->pets as $pet) {
             $pet->appointments()->delete();
             $pet->medicalRecords()->delete();
-            $pet->dailyRoutineLogs()->delete();
+            $pet->healthJournals()->delete();
             $pet->aiScans()->delete();
             $pet->delete();
         }
@@ -93,12 +213,99 @@ class ManagerController extends Controller
     }
 
     /**
-     * GET /api/manager/veterinarians
-     * List all veterinarians with user info.
+     * POST /api/manager/veterinarians
+     * Register a new veterinarian.
      */
-    public function listVeterinarians()
+    public function storeVeterinarian(Request $request)
     {
-        $vets = Veterinarian::with(['user', 'availableSlots'])->get();
+        $validated = $request->validate([
+            'name'         => 'required|string|max:255',
+            'email'        => 'required|email|unique:users,email',
+            'phone_number' => 'required|string|max:20',
+            'password'     => 'required|string|min:6',
+            'specialties'  => 'required', // string or array
+        ]);
+
+        $specialties = is_array($validated['specialties'])
+            ? $validated['specialties']
+            : array_map('trim', explode(',', $validated['specialties']));
+
+        $auth = app('firebase.auth');
+
+        try {
+            $firebaseUser = $auth->createUser([
+                'email'         => $validated['email'],
+                'password'      => $validated['password'],
+                'displayName'   => $validated['name'],
+                // Firebase might require E.164 format for phoneNumber, if validation fails it will throw exception
+                // We'll omit phoneNumber from Firebase creation to avoid format issues if it's not strictly required
+                // or we could include it, but let's stick to email/password/name.
+            ]);
+        } catch (AuthException | FirebaseException $e) {
+            return response()->json(['message' => 'Firebase Auth Error: ' . $e->getMessage()], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $user = User::create([
+                'user_id'      => $firebaseUser->uid,
+                'name'         => $validated['name'],
+                'email'        => $validated['email'],
+                'phone_number' => $validated['phone_number'],
+                'password'     => Hash::make($validated['password']),
+                'role'         => 'vet',
+                'clinic_id'    => $request->user()->clinic_id,
+            ]);
+
+            $vet = Veterinarian::create([
+                'vet_id'      => $firebaseUser->uid,
+                'name'        => $validated['name'],
+                'specialties' => $specialties,
+                'status'      => 'approved',
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Veterinarian registered successfully.',
+                'data'    => [
+                    'vet_id'            => $vet->vet_id,
+                    'name'              => $vet->name,
+                    'email'             => $user->email,
+                    'phone_number'      => $user->phone_number,
+                    'specialties'       => $vet->specialties,
+                    'status'            => $vet->status,
+                ],
+            ], Response::HTTP_CREATED);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            try {
+                $auth->deleteUser($firebaseUser->uid);
+            } catch (\Throwable $deleteEx) {
+                // Log or ignore
+            }
+            return response()->json(['message' => 'Local database error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * GET /api/manager/veterinarians
+     * List veterinarians belonging to this clinic only.
+     * SECURITY: Strict multi-tenant scoping.
+     */
+    public function listVeterinarians(Request $request)
+    {
+        $clinicId = $request->user()->clinic_id;
+
+        $vetIds = User::where('clinic_id', $clinicId)
+            ->where('role', 'vet')
+            ->pluck('user_id');
+
+        $vets = Veterinarian::whereIn('vet_id', $vetIds)
+            ->with(['user', 'availableSlots'])
+            ->get();
 
         return response()->json([
             'data' => $vets->map(function ($vet) {
@@ -122,10 +329,19 @@ class ManagerController extends Controller
 
     /**
      * PUT /api/manager/veterinarians/{id}
-     * Manager can update any vet's status and other fields.
+     * Manager can update a vet belonging to their clinic.
+     * SECURITY: Strict multi-tenant scoping.
      */
     public function updateVeterinarian(Request $request, string $id)
     {
+        $clinicId = $request->user()->clinic_id;
+
+        // Ensure the vet belongs to this clinic
+        $vetUser = User::where('user_id', $id)
+            ->where('clinic_id', $clinicId)
+            ->where('role', 'vet')
+            ->firstOrFail();
+
         $vet = Veterinarian::where('vet_id', $id)->firstOrFail();
 
         $vet->update($request->only([
@@ -148,5 +364,60 @@ class ManagerController extends Controller
                 'updated_at'        => $vet->updated_at?->toIso8601String(),
             ],
         ]);
+    }
+
+    /**
+     * PUT /api/manager/appointments/{id}/assign
+     * Assign a veterinarian to a pending appointment at this clinic.
+     * SECURITY: Strict multi-tenant scoping.
+     */
+    public function assignVet(Request $request, string $id)
+    {
+        $clinicId = $request->user()->clinic_id;
+
+        $validated = $request->validate([
+            'vet_id' => 'required|string|exists:veterinarians,vet_id',
+        ]);
+
+        // Ensure appointment belongs to this clinic
+        $appointment = Appointment::where('appointment_id', $id)
+            ->where('clinic_id', $clinicId)
+            ->firstOrFail();
+
+        // Ensure vet belongs to this clinic
+        User::where('user_id', $validated['vet_id'])
+            ->where('clinic_id', $clinicId)
+            ->where('role', 'vet')
+            ->firstOrFail();
+
+        $vet = Veterinarian::where('vet_id', $validated['vet_id'])->firstOrFail();
+
+        $appointment->update([
+            'vet_id'   => $vet->vet_id,
+            'vet_name' => $vet->name,
+            'status'   => 'assigned',
+        ]);
+
+        return response()->json([
+            'message' => 'Veterinarian assigned successfully.',
+            'data'    => new \App\Http\Resources\AppointmentResource($appointment->fresh()),
+        ]);
+    }
+
+    /**
+     * GET /api/manager/appointments
+     * List all appointments at this clinic, including doctor info.
+     * SECURITY: Strict multi-tenant scoping.
+     */
+    public function listAppointments(Request $request)
+    {
+        $clinicId = $request->user()->clinic_id;
+
+        $appointments = Appointment::where('clinic_id', $clinicId)
+            ->with(['pet.owner', 'veterinarian', 'medicalRecord'])
+            ->orderByDesc('appointment_date')
+            ->get();
+
+        return \App\Http\Resources\AppointmentResource::collection($appointments);
     }
 }

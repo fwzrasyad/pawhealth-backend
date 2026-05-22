@@ -21,6 +21,7 @@ class MedicalRecordController extends Controller
             ->firstOrFail();
 
         $records = $pet->medicalRecords()
+            ->with(['veterinarian', 'appointment'])
             ->orderByDesc('created_at')
             ->get();
 
@@ -30,6 +31,7 @@ class MedicalRecordController extends Controller
     /**
      * POST /api/medical-records
      * Create a medical record (vet only).
+     * Automatically assigns the logged-in Vet's ID.
      */
     public function store(Request $request)
     {
@@ -40,24 +42,25 @@ class MedicalRecordController extends Controller
         }
 
         $validated = $request->validate([
-            'pet_id'           => 'required|string|exists:pets,pet_id',
-            'diagnosis'        => 'required|string',
-            'treatment'        => 'required|string',
-            'vaccination_date' => 'nullable|date',
-            'next_due_date'    => 'nullable|date',
-            'attachment_url'   => 'nullable|string|max:500',
+            'pet_id'                 => 'required|string|exists:pets,pet_id',
+            'appointment_id'         => 'nullable|string|exists:appointments,appointment_id',
+            'diagnosis'              => 'required|string',
+            'doctor_notes'           => 'nullable|string',
+            'medications_prescribed' => 'nullable|array',
+            'follow_up_instructions' => 'nullable|string',
         ]);
 
+        // Auto-assign the authenticated vet's ID
         $validated['vet_id'] = $user->user_id;
 
         $record = MedicalRecord::create($validated);
 
-        return new MedicalRecordResource($record);
+        return new MedicalRecordResource($record->load(['veterinarian', 'appointment']));
     }
 
     /**
      * PUT /api/medical-records/{id}
-     * Update a medical record (vet only).
+     * Update a medical record (vet only — must own the record).
      */
     public function update(Request $request, string $id)
     {
@@ -72,15 +75,14 @@ class MedicalRecordController extends Controller
             ->firstOrFail();
 
         $validated = $request->validate([
-            'diagnosis'        => 'sometimes|string',
-            'treatment'        => 'sometimes|string',
-            'vaccination_date' => 'nullable|date',
-            'next_due_date'    => 'nullable|date',
-            'attachment_url'   => 'nullable|string|max:500',
+            'diagnosis'              => 'sometimes|string',
+            'doctor_notes'           => 'nullable|string',
+            'medications_prescribed' => 'nullable|array',
+            'follow_up_instructions' => 'nullable|string',
         ]);
 
         $record->update($validated);
 
-        return new MedicalRecordResource($record->fresh());
+        return new MedicalRecordResource($record->fresh()->load(['veterinarian', 'appointment']));
     }
 }

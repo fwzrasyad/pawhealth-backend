@@ -26,6 +26,9 @@ class AuthController extends Controller
             $user->update($updateData);
         }
 
-        return new UserResource($user->fresh());
+        // Load clinic relationship to include clinic status in the response
+        $user->load('clinic');
+
+        return new UserResource($user->fresh(['clinic']));
     }
 }
