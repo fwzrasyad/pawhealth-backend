@@ -15,10 +15,25 @@ class MedicalRecordController extends Controller
      */
     public function index(Request $request, string $petId)
     {
-        $pet = $request->user()
-            ->pets()
-            ->where('pet_id', $petId)
-            ->firstOrFail();
+        $user = $request->user();
+
+        if ($user->role === 'vet') {
+            // Vets can access medical records for pets they have appointments with
+            $hasAppointment = \App\Models\Appointment::where('vet_id', $user->user_id)
+                ->where('pet_id', $petId)
+                ->exists();
+
+            if (!$hasAppointment) {
+                return response()->json(['message' => 'Forbidden — you have no appointments with this pet.'], 403);
+            }
+
+            $pet = \App\Models\Pet::where('pet_id', $petId)->firstOrFail();
+        } else {
+            // Pet owners can only access their own pets
+            $pet = $user->pets()
+                ->where('pet_id', $petId)
+                ->firstOrFail();
+        }
 
         $records = $pet->medicalRecords()
             ->with(['veterinarian', 'appointment'])
