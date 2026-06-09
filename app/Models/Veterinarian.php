@@ -23,13 +23,15 @@ class Veterinarian extends Model
         'bio',
         'status',
         'weekly_schedule',
+        'consultation_fee',
     ];
 
     protected function casts(): array
     {
         return [
-            'specialties'     => 'array',
-            'weekly_schedule' => 'array',
+            'specialties'      => 'array',
+            'weekly_schedule'  => 'array',
+            'consultation_fee' => 'decimal:2',
         ];
     }
 

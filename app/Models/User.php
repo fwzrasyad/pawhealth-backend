@@ -23,6 +23,8 @@ class User extends Authenticatable
         'role',
         'phone_number',
         'clinic_id',
+        'fcm_token',
+        'profile_image_url',
     ];
 
     protected $hidden = [
@@ -34,6 +36,11 @@ class User extends Authenticatable
         return [
             'password' => 'hashed',
         ];
+    }
+
+    public function routeFCM()
+    {
+        return $this->fcm_token;
     }
 
     // ── Relationships ──

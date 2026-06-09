@@ -5,10 +5,18 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\VeterinarianResource;
 use App\Models\Veterinarian;
+use App\Services\FirebaseStorageService;
 use Illuminate\Http\Request;
 
 class VeterinarianController extends Controller
 {
+    protected $storageService;
+
+    public function __construct(FirebaseStorageService $storageService)
+    {
+        $this->storageService = $storageService;
+    }
+
     /**
      * GET /api/veterinarians
      * List all veterinarians.
@@ -76,14 +84,31 @@ class VeterinarianController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        $vet->update($request->only([
+        $updateData = $request->only([
             'name',
             'bio',
             'working_hours',
             'specialties',
             'weekly_schedule',
             'profile_image_url',
-        ]));
+        ]);
+
+        // Handle profile image file upload
+        if ($request->hasFile('profile_image')) {
+            $request->validate([
+                'profile_image' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
+            ]);
+
+            // Delete old image
+            $this->storageService->delete($vet->profile_image_url);
+
+            $updateData['profile_image_url'] = $this->storageService->upload(
+                $request->file('profile_image'),
+                'vets'
+            );
+        }
+
+        $vet->update($updateData);
 
         return new VeterinarianResource($vet->fresh());
     }

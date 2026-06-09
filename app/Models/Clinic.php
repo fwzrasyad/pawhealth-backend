@@ -27,6 +27,8 @@ class Clinic extends Model
         'description',
         'status',
         'license_file_path',
+        'image_url',
+        'google_maps_url',
     ];
 
     protected function casts(): array

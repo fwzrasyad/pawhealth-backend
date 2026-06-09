@@ -10,8 +10,8 @@ const api    = useApi();
 
 const clinics   = ref([]);
 const loading   = ref(true);
-const approving = ref(null);   // clinic_id being approved
-const rejecting = ref(null);   // clinic_id being rejected
+const approving = ref(null);
+const rejecting = ref(null);
 
 // Toast
 const toast = ref({ show: false, message: '', type: 'success' });
@@ -24,6 +24,7 @@ function showToast(message, type = 'success') {
 }
 
 const user = computed(() => auth.currentUser);
+const collapsed = ref(false);
 
 onMounted(async () => {
     loading.value = true;
@@ -71,69 +72,65 @@ async function handleLogout() {
 </script>
 
 <template>
-    <div class="flex h-screen overflow-hidden bg-slate-50" style="font-family: 'Inter', sans-serif;">
+    <div class="flex h-screen overflow-hidden bg-surface font-sans">
         <!-- ── Sidebar ── -->
-        <aside class="w-64 flex flex-col bg-gradient-to-b from-slate-900 to-slate-800 text-white">
+        <aside
+            :class="collapsed ? 'w-[72px]' : 'w-[228px]'"
+            class="relative flex flex-col bg-sidebar-bg transition-all duration-300 ease-in-out"
+        >
             <!-- Brand -->
-            <div class="flex h-16 items-center gap-3 px-5 border-b border-white/10">
-                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500 shadow-lg shadow-amber-500/30">
-                    <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                    </svg>
+            <div class="flex h-16 items-center gap-3 px-5 border-b border-primary/20 shrink-0">
+                <div class="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-primary">
+                    <img src="/pawhealth_logo.png" alt="Logo" class="h-5 w-5 object-contain" style="filter: brightness(0) invert(1);" />
                 </div>
-                <span class="text-base font-bold tracking-tight">
-                    Paw<span class="text-amber-400">Health</span>
-                    <span class="ml-1 text-xs font-normal text-slate-400">Admin</span>
-                </span>
+                <transition name="fade">
+                    <span v-if="!collapsed" class="text-[17px] font-bold tracking-[-0.3px] text-white whitespace-nowrap">
+                        PawHealth
+                    </span>
+                </transition>
             </div>
 
             <!-- Navigation -->
-            <nav class="flex-1 px-3 py-4">
-                <div class="rounded-lg bg-amber-500/20 px-3 py-2.5 text-sm font-medium text-amber-300 shadow-sm">
-                    <div class="flex items-center gap-3">
-                        <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>Pending Clinics</span>
-                    </div>
+            <nav class="flex-1 space-y-1.5 px-[14px] py-[18px] overflow-y-auto">
+                <div class="flex items-center gap-3 rounded-[10px] bg-primary px-[12px] py-[9px] text-[13.5px] font-semibold text-white">
+                    <i class="ti ti-shield-check text-[20px] shrink-0"></i>
+                    <transition name="fade">
+                        <span v-if="!collapsed" class="whitespace-nowrap">Pending Clinics</span>
+                    </transition>
                 </div>
             </nav>
 
-            <!-- Logout -->
-            <div class="border-t border-white/10 px-3 py-3">
-                <button
-                    @click="handleLogout"
-                    class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-400 transition-all hover:bg-white/5 hover:text-white"
-                >
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
-                    </svg>
-                    Logout
-                </button>
+            <!-- Collapse toggle -->
+            <button
+                @click="collapsed = !collapsed"
+                class="flex h-10 items-center justify-center text-muted-text hover:text-white transition-colors"
+            >
+                <i v-if="collapsed" class="ti ti-chevron-right text-[18px]"></i>
+                <i v-else class="ti ti-chevron-left text-[18px]"></i>
+            </button>
+
+            <!-- Footer Avatar -->
+            <div class="flex items-center gap-3 px-[14px] py-[16px] border-t border-primary/20 shrink-0">
+                <div class="flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-white">
+                    {{ user?.email?.charAt(0)?.toUpperCase() || 'A' }}
+                </div>
+                <transition name="fade">
+                    <div v-if="!collapsed" class="flex flex-1 items-center justify-between overflow-hidden">
+                        <div class="flex flex-col truncate pr-2">
+                            <span class="truncate text-[11.5px] text-nav-inactive">{{ user?.email || 'admin@pawhealth.com' }}</span>
+                            <span class="text-[11px] text-muted-text">Super Admin</span>
+                        </div>
+                        <button @click="handleLogout" class="text-muted-text hover:text-white transition-colors shrink-0" title="Logout">
+                            <i class="ti ti-logout text-[18px]"></i>
+                        </button>
+                    </div>
+                </transition>
             </div>
         </aside>
 
         <!-- ── Main Content ── -->
         <div class="flex flex-1 flex-col overflow-hidden">
-            <!-- Top Bar -->
-            <header class="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 shadow-sm">
-                <div>
-                    <h1 class="text-lg font-semibold text-slate-800">Super Manager Dashboard</h1>
-                    <p class="text-xs text-slate-400">Review and approve clinic registrations</p>
-                </div>
-                <div class="flex items-center gap-3">
-                    <div class="h-8 w-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white text-xs font-bold shadow-md">
-                        {{ user?.email?.charAt(0)?.toUpperCase() || 'A' }}
-                    </div>
-                    <div class="hidden sm:block">
-                        <p class="text-sm font-medium text-slate-700">{{ user?.email || 'Admin' }}</p>
-                        <p class="text-xs text-slate-400">Super Admin</p>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Page Content -->
-            <main class="flex-1 overflow-y-auto p-6">
+            <main class="flex-1 overflow-y-auto p-[24px]">
                 <!-- Toast -->
                 <transition
                     enter-active-class="transition duration-300 ease-out"
@@ -146,146 +143,131 @@ async function handleLogout() {
                     <div
                         v-if="toast.show"
                         :class="[
-                            'fixed right-6 top-6 z-50 flex items-center gap-3 rounded-xl px-5 py-3.5 text-sm font-medium shadow-lg backdrop-blur-sm',
-                            toast.type === 'success' ? 'bg-emerald-600/95 text-white' : 'bg-red-600/95 text-white',
+                            'fixed right-6 top-6 z-50 flex items-center gap-3 rounded-[14px] px-5 py-3.5 text-[13px] font-semibold shadow-lg',
+                            toast.type === 'success' ? 'bg-completed-text text-white' : 'bg-pending-text text-white',
                         ]"
                     >
-                        <svg v-if="toast.type === 'success'" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <svg v-else class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-                        </svg>
+                        <i :class="['ti text-[18px]', toast.type === 'success' ? 'ti-circle-check' : 'ti-alert-circle']"></i>
                         {{ toast.message }}
-                        <button @click="toast.show = false" class="ml-2 rounded-lg p-1 transition-colors hover:bg-white/20">
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                        <button @click="toast.show = false" class="ml-2 rounded-[8px] p-1 transition-colors hover:bg-white/20">
+                            <i class="ti ti-x text-[14px]"></i>
                         </button>
                     </div>
                 </transition>
 
-                <div class="space-y-6">
+                <div class="space-y-[32px] pb-10">
                     <!-- Page Header -->
-                    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <h2 class="text-2xl font-bold text-slate-900">Pending Clinic Approvals</h2>
-                            <p class="mt-1 text-sm text-slate-500">
-                                Review clinic registrations and verify their licenses before approval.
-                            </p>
-                        </div>
-                        <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/10">
-                            <span class="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                    <div>
+                        <h2 class="text-[24px] font-bold text-dark-text tracking-[-0.4px]">Pending Clinic Approvals</h2>
+                        <p class="text-[13px] font-normal text-meta-text mt-1">Review clinic registrations and verify their licenses before approval.</p>
+                    </div>
+
+                    <!-- Stat Chip -->
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center gap-1.5 rounded-[100px] bg-pending-bg px-3 py-1 text-[12px] font-semibold text-pending-text">
+                            <span class="h-1.5 w-1.5 rounded-full bg-pending-text animate-pulse"></span>
                             {{ clinics.length }} Pending
                         </span>
                     </div>
 
                     <!-- Loading Skeleton -->
                     <div v-if="loading" class="space-y-4">
-                        <div v-for="n in 3" :key="n" class="h-24 rounded-2xl bg-slate-200 animate-pulse"></div>
+                        <div v-for="n in 3" :key="n" class="h-24 rounded-[14px] bg-chip-bg animate-pulse"></div>
                     </div>
 
                     <!-- Data Table -->
-                    <div v-else class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+                    <div v-else class="overflow-hidden rounded-[16px] border border-card-border bg-white">
                         <!-- Empty State -->
                         <div v-if="clinics.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
-                            <div class="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 mb-5">
-                                <svg class="h-10 w-10 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
+                            <div class="flex h-20 w-20 items-center justify-center rounded-full bg-chip-bg mb-5">
+                                <i class="ti ti-circle-check text-[36px] text-primary"></i>
                             </div>
-                            <p class="text-base font-semibold text-slate-700">All caught up!</p>
-                            <p class="mt-1 text-sm text-slate-400">There are no pending clinic registrations to review.</p>
+                            <p class="text-[14px] font-semibold text-dark-text">All caught up!</p>
+                            <p class="mt-1 text-[12px] text-meta-text">There are no pending clinic registrations to review.</p>
                         </div>
 
                         <!-- Table -->
                         <table v-else class="w-full">
                             <thead>
-                                <tr class="border-b border-slate-100 bg-slate-50/50">
-                                    <th class="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Clinic</th>
-                                    <th class="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Manager</th>
-                                    <th class="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Location</th>
-                                    <th class="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Date Applied</th>
-                                    <th class="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">License</th>
-                                    <th class="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Actions</th>
+                                <tr class="border-b border-card-border bg-surface/50">
+                                    <th class="px-6 py-[12px] text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-text">Clinic</th>
+                                    <th class="px-6 py-[12px] text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-text">Manager</th>
+                                    <th class="px-6 py-[12px] text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-text">Location</th>
+                                    <th class="px-6 py-[12px] text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-text">Date Applied</th>
+                                    <th class="px-6 py-[12px] text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-text">License</th>
+                                    <th class="px-6 py-[12px] text-right text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-text">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-slate-100">
+                            <tbody class="divide-y divide-card-border">
                                 <tr
                                     v-for="clinic in clinics"
                                     :key="clinic.clinic_id"
-                                    class="transition-colors hover:bg-slate-50/50"
+                                    class="transition-colors hover:bg-surface/50"
                                 >
                                     <!-- Clinic Name -->
-                                    <td class="px-6 py-4">
+                                    <td class="px-6 py-[16px]">
                                         <div class="flex items-center gap-3">
-                                            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-violet-600 text-sm font-bold text-white shadow-sm">
+                                            <div class="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-full bg-chip-bg text-[13px] font-bold text-primary-dark">
                                                 {{ clinic.name?.charAt(0)?.toUpperCase() || '?' }}
                                             </div>
                                             <div>
-                                                <p class="text-sm font-semibold text-slate-800">{{ clinic.name }}</p>
-                                                <p class="text-xs text-slate-400">{{ clinic.phone || 'No phone' }}</p>
+                                                <p class="text-[13px] font-semibold text-dark-text">{{ clinic.name }}</p>
+                                                <p class="text-[11.5px] text-meta-text">{{ clinic.phone || 'No phone' }}</p>
                                             </div>
                                         </div>
                                     </td>
 
                                     <!-- Manager -->
-                                    <td class="px-6 py-4">
-                                        <p class="text-sm font-medium text-slate-700">{{ clinic.manager_name }}</p>
-                                        <p class="text-xs text-slate-400">{{ clinic.manager_email }}</p>
+                                    <td class="px-6 py-[16px]">
+                                        <p class="text-[13px] font-medium text-dark-text">{{ clinic.manager_name }}</p>
+                                        <p class="text-[11.5px] text-meta-text">{{ clinic.manager_email }}</p>
                                     </td>
 
                                     <!-- Location -->
-                                    <td class="px-6 py-4">
-                                        <p class="text-sm text-slate-600">{{ clinic.city }}, {{ clinic.state }}</p>
-                                        <p class="text-xs text-slate-400 max-w-[180px] truncate" :title="clinic.address">{{ clinic.address }}</p>
+                                    <td class="px-6 py-[16px]">
+                                        <p class="text-[13px] text-dark-text">{{ clinic.city }}, {{ clinic.state }}</p>
+                                        <p class="text-[11.5px] text-meta-text max-w-[180px] truncate" :title="clinic.address">{{ clinic.address }}</p>
                                     </td>
 
                                     <!-- Date Applied -->
-                                    <td class="px-6 py-4 text-sm text-slate-500">
+                                    <td class="px-6 py-[16px] text-[13px] text-muted-text">
                                         {{ formatDate(clinic.created_at) }}
                                     </td>
 
                                     <!-- License -->
-                                    <td class="px-6 py-4">
+                                    <td class="px-6 py-[16px]">
                                         <a
                                             v-if="clinic.license_file_url"
                                             :href="clinic.license_file_url"
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            class="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 px-3 py-1.5 text-xs font-medium text-violet-600 transition-all hover:bg-violet-50 hover:border-violet-300 hover:shadow-sm"
+                                            class="inline-flex items-center gap-1.5 rounded-[10px] border border-card-border px-3 py-1.5 text-[12px] font-semibold text-primary transition-all hover:bg-chip-bg hover:border-primary"
                                         >
-                                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                                            </svg>
+                                            <i class="ti ti-file-text text-[14px]"></i>
                                             View License
                                         </a>
-                                        <span v-else class="text-xs text-slate-400 italic">No file</span>
+                                        <span v-else class="text-[12px] text-meta-text italic">No file</span>
                                     </td>
 
                                     <!-- Actions -->
-                                    <td class="px-6 py-4 text-right">
+                                    <td class="px-6 py-[16px] text-right">
                                         <div class="flex items-center justify-end gap-2">
                                             <button
                                                 @click="rejectClinic(clinic.clinic_id)"
                                                 :disabled="rejecting === clinic.clinic_id || approving === clinic.clinic_id"
-                                                class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                                                class="inline-flex h-8 w-8 items-center justify-center rounded-[8px] bg-surface text-pending-text transition-colors hover:bg-pending-bg hover:text-pending-text disabled:opacity-50"
+                                                title="Reject"
                                             >
-                                                <div v-if="rejecting === clinic.clinic_id" class="h-3 w-3 animate-spin rounded-full border-2 border-red-500 border-t-transparent"></div>
-                                                <svg v-else class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                                Reject
+                                                <div v-if="rejecting === clinic.clinic_id" class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-pending-text border-t-transparent"></div>
+                                                <i v-else class="ti ti-x text-[16px]"></i>
                                             </button>
                                             <button
                                                 @click="approveClinic(clinic.clinic_id)"
                                                 :disabled="approving === clinic.clinic_id || rejecting === clinic.clinic_id"
-                                                class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-emerald-700 hover:shadow-md active:scale-95 transition-all disabled:opacity-60"
+                                                class="inline-flex items-center gap-1.5 rounded-[10px] bg-primary px-3.5 py-[7px] text-[12px] font-semibold text-white hover:bg-primary-dark active:scale-[0.97] transition-all disabled:opacity-50"
                                             >
-                                                <div v-if="approving === clinic.clinic_id" class="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                                                <svg v-else class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                                                </svg>
+                                                <div v-if="approving === clinic.clinic_id" class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                                <i v-else class="ti ti-check text-[14px]"></i>
                                                 Approve
                                             </button>
                                         </div>
@@ -295,8 +277,8 @@ async function handleLogout() {
                         </table>
 
                         <!-- Footer -->
-                        <div class="border-t border-slate-100 bg-slate-50/30 px-6 py-3">
-                            <p class="text-xs text-slate-400">
+                        <div class="border-t border-card-border bg-surface/30 px-6 py-3">
+                            <p class="text-[11.5px] text-meta-text">
                                 {{ clinics.length }} pending clinic{{ clinics.length !== 1 ? 's' : '' }}
                             </p>
                         </div>
@@ -306,3 +288,14 @@ async function handleLogout() {
         </div>
     </div>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
+</style>

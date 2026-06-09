@@ -70,4 +70,14 @@ class Pet extends Model
     {
         return $this->hasMany(AIScan::class, 'pet_id', 'pet_id');
     }
+
+    public function vaccinations()
+    {
+        return $this->hasMany(VaccinationRecord::class, 'pet_id', 'pet_id');
+    }
+
+    public function recoveryPlans()
+    {
+        return $this->hasMany(RecoveryPlan::class, 'pet_id', 'pet_id');
+    }
 }

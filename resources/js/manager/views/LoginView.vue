@@ -48,46 +48,42 @@ async function handleLogin() {
 </script>
 
 <template>
-    <div class="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-violet-950 p-4" style="font-family: 'Inter', sans-serif;">
+    <div class="flex min-h-screen items-center justify-center bg-sidebar-bg p-4 font-sans">
         <!-- Background decoration -->
         <div class="pointer-events-none absolute inset-0 overflow-hidden">
-            <div class="absolute -top-40 -right-40 h-96 w-96 rounded-full bg-violet-600/10 blur-3xl"></div>
-            <div class="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-indigo-600/10 blur-3xl"></div>
+            <div class="absolute -top-40 -right-40 h-96 w-96 rounded-full bg-primary/10 blur-3xl"></div>
+            <div class="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-primary-dark/10 blur-3xl"></div>
         </div>
 
         <!-- Login Card -->
         <div class="relative w-full max-w-md">
             <!-- Brand -->
             <div class="mb-8 text-center">
-                <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-2xl shadow-violet-600/30">
-                    <svg class="h-8 w-8 text-white" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-4.5-2c-.83 0-1.5.67-1.5 1.5S6.67 11 7.5 11 9 10.33 9 9.5 8.33 8 7.5 8zm0 6c-.83 0-1.5.67-1.5 1.5S6.67 17 7.5 17 9 16.33 9 15.5 8.33 14 7.5 14zm9-6c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5S17.33 8 16.5 8zm0 6c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zM12 4c-.83 0-1.5.67-1.5 1.5S11.17 7 12 7s1.5-.67 1.5-1.5S12.83 4 12 4z"/>
-                    </svg>
+                <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[16px] bg-primary shadow-lg shadow-primary/30">
+                    <img src="/pawhealth_logo.png" alt="PawHealth Logo" class="h-9 w-9 object-contain" style="filter: brightness(0) invert(1);" />
                 </div>
-                <h1 class="text-2xl font-bold text-white">Paw<span class="text-violet-400">Health</span></h1>
-                <p class="mt-1 text-sm text-slate-400">System Manager Portal</p>
+                <h1 class="text-[24px] font-bold text-white tracking-[-0.4px]">Paw<span class="text-[#C4B5FD]">Health</span></h1>
+                <p class="mt-1 text-[13px] text-[#9B8CB8]">System Manager Portal</p>
             </div>
 
             <!-- Card -->
-            <div class="rounded-2xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-xl">
-                <h2 class="text-lg font-semibold text-white">Welcome back</h2>
-                <p class="mt-1 text-sm text-slate-400">Sign in to your manager account</p>
+            <div class="rounded-[16px] border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
+                <h2 class="text-[17px] font-bold text-white">Welcome back</h2>
+                <p class="mt-1 text-[13px] text-[#9B8CB8]">Sign in to your manager account</p>
 
                 <!-- Error -->
                 <div
                     v-if="error"
-                    class="mt-4 flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+                    class="mt-4 flex items-center gap-2 rounded-[12px] border border-red-500/20 bg-red-500/10 px-4 py-3 text-[13px] text-red-300"
                 >
-                    <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-                    </svg>
+                    <i class="ti ti-alert-circle text-[16px] shrink-0"></i>
                     {{ error }}
                 </div>
 
                 <form @submit.prevent="handleLogin" class="mt-6 space-y-5">
                     <!-- Email -->
                     <div>
-                        <label for="login-email" class="block text-sm font-medium text-slate-300">Email</label>
+                        <label for="login-email" class="block text-[13px] font-semibold text-[#C4B5FD]">Email</label>
                         <input
                             id="login-email"
                             v-model="email"
@@ -95,13 +91,13 @@ async function handleLogin() {
                             required
                             autocomplete="email"
                             placeholder="manager@pawhealth.com"
-                            class="mt-1.5 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none ring-1 ring-transparent transition-all focus:border-violet-500/50 focus:bg-white/10 focus:ring-violet-500/20"
+                            class="mt-1.5 w-full rounded-[10px] border border-white/10 bg-white px-4 py-[10px] text-[13px] text-dark-text placeholder-[#9B8CB8] outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary"
                         />
                     </div>
 
                     <!-- Password -->
                     <div>
-                        <label for="login-password" class="block text-sm font-medium text-slate-300">Password</label>
+                        <label for="login-password" class="block text-[13px] font-semibold text-[#C4B5FD]">Password</label>
                         <div class="relative mt-1.5">
                             <input
                                 id="login-password"
@@ -110,12 +106,12 @@ async function handleLogin() {
                                 required
                                 autocomplete="current-password"
                                 placeholder="••••••••"
-                                class="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-12 text-sm text-white placeholder-slate-500 outline-none ring-1 ring-transparent transition-all focus:border-violet-500/50 focus:bg-white/10 focus:ring-violet-500/20"
+                                class="w-full rounded-[10px] border border-white/10 bg-white px-4 py-[10px] pr-12 text-[13px] text-dark-text placeholder-[#9B8CB8] outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary"
                             />
                             <button
                                 type="button"
                                 @click="showPass = !showPass"
-                                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-[#9B8CB8] hover:text-primary transition-colors"
                             >
                                 <svg v-if="!showPass" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
@@ -132,7 +128,7 @@ async function handleLogin() {
                     <button
                         type="submit"
                         :disabled="loading"
-                        class="w-full rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-500/25 transition-all hover:from-violet-600 hover:to-indigo-700 hover:shadow-xl hover:shadow-violet-500/30 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+                        class="w-full rounded-[10px] bg-primary px-4 py-[11px] text-[13px] font-semibold text-white transition-all hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
                     >
                         <span v-if="loading" class="flex items-center justify-center gap-2">
                             <div class="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></div>
@@ -143,12 +139,12 @@ async function handleLogin() {
                 </form>
             </div>
 
-            <p class="mt-6 text-center text-xs text-slate-600">
+            <p class="mt-6 text-center text-[11px] text-[#5B4B8A]">
                 PawHealth &copy; {{ new Date().getFullYear() }} — Manager Portal
             </p>
-            <p class="mt-4 text-center text-sm text-slate-400">
+            <p class="mt-4 text-center text-[13px] text-[#9B8CB8]">
                 Don't have an account? 
-                <router-link to="/manager/register" class="text-violet-400 font-medium hover:text-violet-300 transition-colors">Register your clinic</router-link>
+                <router-link to="/manager/register" class="text-[#C4B5FD] font-semibold hover:text-white transition-colors">Register your clinic</router-link>
             </p>
         </div>
     </div>

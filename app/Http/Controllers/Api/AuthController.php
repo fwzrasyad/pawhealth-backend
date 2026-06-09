@@ -4,10 +4,18 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
+use App\Services\FirebaseStorageService;
 use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
+    protected $storageService;
+
+    public function __construct(FirebaseStorageService $storageService)
+    {
+        $this->storageService = $storageService;
+    }
+
     /**
      * POST /api/auth/sync
      *
@@ -22,6 +30,22 @@ class AuthController extends Controller
 
         // Allow the Flutter app to push profile updates during sync
         $updateData = $request->only(['name', 'email', 'phone_number', 'role']);
+
+        // Handle profile image file upload
+        if ($request->hasFile('profile_image')) {
+            $request->validate([
+                'profile_image' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
+            ]);
+
+            // Delete old image if exists
+            $this->storageService->delete($user->profile_image_url);
+
+            $updateData['profile_image_url'] = $this->storageService->upload(
+                $request->file('profile_image'),
+                'users'
+            );
+        }
+
         if (!empty($updateData)) {
             $user->update($updateData);
         }

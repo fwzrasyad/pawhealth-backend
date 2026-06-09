@@ -65,6 +65,8 @@ class ClinicController extends Controller
                     'longitude'   => $clinic->longitude,
                     'phone'       => $clinic->phone,
                     'description' => $clinic->description,
+                    'image_url'   => $clinic->image_url,
+                    'google_maps_url' => $clinic->google_maps_url,
                     'created_at'  => $clinic->created_at?->toIso8601String(),
                     'updated_at'  => $clinic->updated_at?->toIso8601String(),
                 ];
@@ -104,8 +106,17 @@ class ClinicController extends Controller
 
         return response()->json([
             'clinic' => [
-                'clinic_id' => $clinic->clinic_id,
-                'name'      => $clinic->name,
+                'clinic_id'   => $clinic->clinic_id,
+                'name'        => $clinic->name,
+                'address'     => $clinic->address,
+                'city'        => $clinic->city,
+                'state'       => $clinic->state,
+                'latitude'    => $clinic->latitude,
+                'longitude'   => $clinic->longitude,
+                'phone'       => $clinic->phone,
+                'description' => $clinic->description,
+                'image_url'   => $clinic->image_url,
+                'google_maps_url' => $clinic->google_maps_url,
             ],
             'data' => $vets->map(function ($vet) {
                 return [
@@ -118,6 +129,7 @@ class ClinicController extends Controller
                     'specialties'       => $vet->specialties ?? [],
                     'bio'               => $vet->bio,
                     'status'            => $vet->status,
+                    'consultation_fee'  => $vet->consultation_fee,
                     'weekly_schedule'   => $vet->weekly_schedule ?? [],
                     'booked_slots'      => $vet->appointments->pluck('time_slot')->map(fn ($dt) => \Carbon\Carbon::parse($dt)->format('Y-m-d H:i:s'))->values()->all(),
                 ];

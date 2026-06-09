@@ -15,11 +15,19 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use App\Services\FirebaseStorageService;
 use Kreait\Firebase\Exception\AuthException;
 use Kreait\Firebase\Exception\FirebaseException;
 
 class ManagerController extends Controller
 {
+    protected $storageService;
+
+    public function __construct(FirebaseStorageService $storageService)
+    {
+        $this->storageService = $storageService;
+    }
+
     /**
      * POST /api/manager/register
      * Register a new clinic and its manager.
@@ -52,9 +60,11 @@ class ManagerController extends Controller
         try {
             DB::beginTransaction();
 
-            // Store the uploaded license file
-            $licensePath = $request->file('license_file')
-                ->store('licenses', 'public');
+            // Store the uploaded license file to Firebase Storage
+            $licensePath = $this->storageService->upload(
+                $request->file('license_file'),
+                'licenses'
+            );
 
             $clinic = \App\Models\Clinic::create([
                 'name'              => $validated['name'],
@@ -141,14 +151,15 @@ class ManagerController extends Controller
         return response()->json([
             'data' => $users->map(function ($user) {
                 return [
-                    'user_id'      => $user->user_id,
-                    'name'         => $user->name,
-                    'email'        => $user->email,
-                    'phone_number' => $user->phone_number,
-                    'role'         => $user->role,
-                    'pets_count'   => $user->pets_count,
-                    'created_at'   => $user->created_at?->toIso8601String(),
-                    'updated_at'   => $user->updated_at?->toIso8601String(),
+                    'user_id'           => $user->user_id,
+                    'name'              => $user->name,
+                    'email'             => $user->email,
+                    'phone_number'      => $user->phone_number,
+                    'profile_image_url' => $user->profile_image_url,
+                    'role'              => $user->role,
+                    'pets_count'        => $user->pets_count,
+                    'created_at'        => $user->created_at?->toIso8601String(),
+                    'updated_at'        => $user->updated_at?->toIso8601String(),
                 ];
             }),
         ]);
@@ -319,6 +330,7 @@ class ManagerController extends Controller
                     'specialties'       => $vet->specialties ?? [],
                     'bio'               => $vet->bio,
                     'status'            => $vet->status ?? 'pending',
+                    'consultation_fee'  => $vet->consultation_fee,
                     'weekly_schedule'   => $vet->weekly_schedule ?? [],
                     'created_at'        => $vet->created_at?->toIso8601String(),
                     'updated_at'        => $vet->updated_at?->toIso8601String(),
@@ -350,6 +362,7 @@ class ManagerController extends Controller
             'working_hours',
             'specialties',
             'status',
+            'consultation_fee',
         ]));
 
         return response()->json([
@@ -360,6 +373,7 @@ class ManagerController extends Controller
                 'status'            => $vet->status,
                 'bio'               => $vet->bio,
                 'working_hours'     => $vet->working_hours,
+                'consultation_fee'  => $vet->consultation_fee,
                 'specialties'       => $vet->specialties ?? [],
                 'updated_at'        => $vet->updated_at?->toIso8601String(),
             ],
@@ -419,5 +433,86 @@ class ManagerController extends Controller
             ->get();
 
         return \App\Http\Resources\AppointmentResource::collection($appointments);
+    }
+
+    /**
+     * GET /api/manager/clinic
+     * Get the current manager's clinic profile.
+     */
+    public function getClinic(Request $request)
+    {
+        $clinicId = $request->user()->clinic_id;
+        $clinic = \App\Models\Clinic::where('clinic_id', $clinicId)->firstOrFail();
+
+        return response()->json([
+            'data' => [
+                'clinic_id'   => $clinic->clinic_id,
+                'name'        => $clinic->name,
+                'address'     => $clinic->address,
+                'city'        => $clinic->city,
+                'state'       => $clinic->state,
+                'phone'       => $clinic->phone,
+                'description' => $clinic->description,
+                'image_url'   => $clinic->image_url,
+                'latitude'    => $clinic->latitude,
+                'longitude'   => $clinic->longitude,
+                'google_maps_url' => $clinic->google_maps_url,
+            ]
+        ]);
+    }
+
+    /**
+     * POST /api/manager/clinic
+     * Update the current manager's clinic profile (supports multipart).
+     */
+    public function updateClinic(Request $request)
+    {
+        $clinicId = $request->user()->clinic_id;
+        $clinic = \App\Models\Clinic::where('clinic_id', $clinicId)->firstOrFail();
+
+        $validated = $request->validate([
+            'name'        => 'sometimes|string|max:255',
+            'address'     => 'sometimes|string|max:255',
+            'city'        => 'sometimes|string|max:100',
+            'state'       => 'sometimes|string|max:100',
+            'phone'       => 'sometimes|string|max:50',
+            'description' => 'sometimes|nullable|string',
+            'latitude'    => 'sometimes|nullable|numeric',
+            'longitude'   => 'sometimes|nullable|numeric',
+            'google_maps_url' => 'sometimes|nullable|string|max:1000',
+            'image'       => 'sometimes|image|mimes:jpeg,png,jpg,webp|max:5120', // 5MB max
+        ]);
+
+        if ($request->hasFile('image')) {
+            // Delete old image if it exists and is on Firebase Storage
+            if ($clinic->image_url && str_contains($clinic->image_url, 'storage.googleapis.com')) {
+                $this->storageService->delete($clinic->image_url);
+            }
+
+            $validated['image_url'] = $this->storageService->upload(
+                $request->file('image'),
+                'clinics'
+            );
+        }
+
+        unset($validated['image']);
+        $clinic->update($validated);
+
+        return response()->json([
+            'message' => 'Clinic updated successfully',
+            'data' => [
+                'clinic_id'   => $clinic->clinic_id,
+                'name'        => $clinic->name,
+                'address'     => $clinic->address,
+                'city'        => $clinic->city,
+                'state'       => $clinic->state,
+                'phone'       => $clinic->phone,
+                'description' => $clinic->description,
+                'image_url'   => $clinic->image_url,
+                'latitude'    => $clinic->latitude,
+                'longitude'   => $clinic->longitude,
+                'google_maps_url' => $clinic->google_maps_url,
+            ]
+        ]);
     }
 }

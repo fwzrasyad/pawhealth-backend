@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import ManagerLayout from '../layouts/ManagerLayout.vue';
 import StatCard      from '../components/StatCard.vue';
 import { useApi }    from '../composables/useApi.js';
@@ -7,138 +7,274 @@ import { useApi }    from '../composables/useApi.js';
 const api     = useApi();
 const stats   = ref(null);
 const loading = ref(true);
+const appointments = ref([]);
+const vets = ref([]);
 
 onMounted(async () => {
     loading.value = true;
-    const { data } = await api.get('/stats');
-    if (data) stats.value = data;
+    try {
+        const [statsRes, apptsRes, vetsRes] = await Promise.all([
+            api.get('/stats'),
+            api.get('/appointments'),
+            api.get('/veterinarians')
+        ]);
+        if (statsRes.data) stats.value = statsRes.data;
+        if (apptsRes.data?.data) appointments.value = apptsRes.data.data;
+        if (vetsRes.data?.data) vets.value = vetsRes.data.data;
+    } catch (e) {
+        console.error(e);
+    }
     loading.value = false;
 });
+
+const nextAppt = computed(() => appointments.value.find(a => a.status === 'confirmed') || appointments.value[0]);
+const upcomingAppts = computed(() => appointments.value.filter(a => a !== nextAppt.value).slice(0, 4));
+
+function formatDate(iso) {
+    if (!iso) return '';
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function formatTime(iso) {
+    if (!iso) return '';
+    return new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
 </script>
 
 <template>
     <ManagerLayout>
-        <div class="space-y-8">
+        <div class="space-y-[32px] pb-10">
             <!-- Page Header -->
             <div>
-                <h2 class="text-2xl font-bold text-slate-900">Dashboard Overview</h2>
-                <p class="mt-1 text-sm text-slate-500">Welcome back! Here's what's happening at your clinic today.</p>
+                <h2 class="text-[24px] font-bold text-dark-text tracking-[-0.4px]">Dashboard Overview</h2>
+                <p class="text-[13px] font-normal text-meta-text mt-1">Welcome back! Here's what's happening at your clinic today.</p>
             </div>
 
             <!-- Stat Cards Grid -->
-            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                <!-- Total Users -->
+            <div class="grid grid-cols-1 gap-[12px] sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard
                     title="Clinic Patients"
                     :value="stats?.total_users ?? '—'"
                     subtitle="Your clinic's pet owners"
-                    color="violet"
+                    color="primary"
                     :loading="loading"
                 >
-                    <template #icon>
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-                        </svg>
-                    </template>
+                    <template #icon><i class="ti ti-users"></i></template>
                 </StatCard>
 
-                <!-- Total Vets -->
                 <StatCard
                     title="Clinic Veterinarians"
                     :value="stats?.total_vets ?? '—'"
                     :subtitle="stats ? `${stats.approved_vets ?? 0} approved, ${stats.pending_vets ?? 0} pending` : ''"
-                    color="emerald"
+                    color="primary"
                     :loading="loading"
                 >
-                    <template #icon>
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                        </svg>
-                    </template>
+                    <template #icon><i class="ti ti-stethoscope"></i></template>
                 </StatCard>
 
-                <!-- Total Pets -->
                 <StatCard
                     title="Clinic Pets"
                     :value="stats?.total_pets ?? '—'"
                     subtitle="Registered at your clinic"
-                    color="amber"
+                    color="primary"
                     :loading="loading"
                 >
-                    <template #icon>
-                        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-4.5-2c-.83 0-1.5.67-1.5 1.5S6.67 11 7.5 11 9 10.33 9 9.5 8.33 8 7.5 8zm0 6c-.83 0-1.5.67-1.5 1.5S6.67 17 7.5 17 9 16.33 9 15.5 8.33 14 7.5 14zm9-6c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5S17.33 8 16.5 8z" />
-                        </svg>
-                    </template>
+                    <template #icon><i class="ti ti-paw"></i></template>
                 </StatCard>
 
-                <!-- Pending Appointments -->
                 <StatCard
                     title="Pending Appointments"
                     :value="stats?.pending_appointments ?? '—'"
                     subtitle="Awaiting confirmation"
-                    color="sky"
+                    color="pending"
                     :loading="loading"
                 >
-                    <template #icon>
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z" />
-                        </svg>
-                    </template>
+                    <template #icon><i class="ti ti-calendar-clock"></i></template>
                 </StatCard>
             </div>
 
             <!-- Quick Actions -->
-            <div class="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
-                <h3 class="text-base font-semibold text-slate-800">Quick Actions</h3>
-                <p class="mt-1 text-sm text-slate-400">Frequently used management tasks</p>
+            <div class="grid grid-cols-1 gap-[10px] sm:grid-cols-3">
+                <router-link
+                    to="/manager/veterinarians"
+                    class="group flex flex-col justify-between rounded-[14px] border border-card-border bg-white p-[16px] transition-all hover:border-primary hover:bg-[#FDFCFF]"
+                >
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="text-[26px] font-bold text-dark-text tracking-[-0.5px]">{{ stats?.total_vets ?? 0 }}</span>
+                        <i class="ti ti-stethoscope text-[22px] text-primary"></i>
+                    </div>
+                    <div>
+                        <p class="text-[13px] font-semibold text-dark-text">Manage Veterinarians</p>
+                        <p class="text-[12px] text-meta-text mb-3">Review & approve profiles</p>
+                        <div class="flex items-center text-[11.5px] font-semibold text-primary">
+                            Review vets <i class="ti ti-arrow-right ml-1"></i>
+                        </div>
+                    </div>
+                </router-link>
 
-                <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <router-link
-                        to="/manager/veterinarians"
-                        class="group flex items-center gap-4 rounded-xl border border-slate-200 p-4 transition-all hover:border-violet-200 hover:bg-violet-50/50 hover:shadow-sm"
-                    >
-                        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 transition-transform group-hover:scale-110">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
+                <router-link
+                    to="/manager/users"
+                    class="group flex flex-col justify-between rounded-[14px] border border-card-border bg-white p-[16px] transition-all hover:border-primary hover:bg-[#FDFCFF]"
+                >
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="text-[26px] font-bold text-dark-text tracking-[-0.5px]">{{ stats?.total_users ?? 0 }}</span>
+                        <i class="ti ti-users text-[22px] text-primary"></i>
+                    </div>
+                    <div>
+                        <p class="text-[13px] font-semibold text-dark-text">View Users</p>
+                        <p class="text-[12px] text-meta-text mb-3">Browse users & their pets</p>
+                        <div class="flex items-center text-[11.5px] font-semibold text-primary">
+                            See users <i class="ti ti-arrow-right ml-1"></i>
                         </div>
-                        <div>
-                            <p class="text-sm font-medium text-slate-700">Manage Veterinarians</p>
-                            <p class="text-xs text-slate-400">Review & approve vet profiles</p>
-                        </div>
-                    </router-link>
+                    </div>
+                </router-link>
 
-                    <router-link
-                        to="/manager/users"
-                        class="group flex items-center gap-4 rounded-xl border border-slate-200 p-4 transition-all hover:border-violet-200 hover:bg-violet-50/50 hover:shadow-sm"
-                    >
-                        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-100 text-violet-600 transition-transform group-hover:scale-110">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-                            </svg>
+                <router-link
+                    to="/manager/appointments"
+                    :class="[
+                        'group flex flex-col justify-between rounded-[14px] border border-card-border bg-white p-[16px] transition-all',
+                        stats?.pending_appointments > 0 ? 'hover:border-pending-text hover:bg-[#FDFCFF]' : 'hover:border-primary hover:bg-[#FDFCFF]'
+                    ]"
+                >
+                    <div class="flex justify-between items-start mb-3">
+                        <span :class="['text-[26px] font-bold tracking-[-0.5px]', stats?.pending_appointments > 0 ? 'text-pending-text' : 'text-dark-text']">
+                            {{ stats?.pending_appointments ?? 0 }}
+                        </span>
+                        <i :class="['ti ti-calendar-event text-[22px]', stats?.pending_appointments > 0 ? 'text-pending-text' : 'text-primary']"></i>
+                    </div>
+                    <div>
+                        <p class="text-[13px] font-semibold text-dark-text">Manage Appointments</p>
+                        <p class="text-[12px] text-meta-text mb-3">Assign vets to bookings</p>
+                        <div :class="['flex items-center text-[11.5px] font-semibold', stats?.pending_appointments > 0 ? 'text-pending-text' : 'text-primary']">
+                            View requests <i class="ti ti-arrow-right ml-1"></i>
                         </div>
-                        <div>
-                            <p class="text-sm font-medium text-slate-700">View Users</p>
-                            <p class="text-xs text-slate-400">Browse users & their pets</p>
-                        </div>
-                    </router-link>
+                    </div>
+                </router-link>
+            </div>
 
-                    <router-link
-                        to="/manager/appointments"
-                        class="group flex items-center gap-4 rounded-xl border border-slate-200 p-4 transition-all hover:border-violet-200 hover:bg-violet-50/50 hover:shadow-sm"
-                    >
-                        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-100 text-sky-600 transition-transform group-hover:scale-110">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                            </svg>
+            <!-- Bottom Panels -->
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-[12px]">
+                
+                <!-- Upcoming Appointments Panel -->
+                <div class="rounded-[16px] border border-card-border bg-white p-[18px] flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-[13.5px] font-bold text-dark-text">Upcoming Appointments</h3>
+                        <span class="rounded-[100px] bg-pending-bg px-2 py-0.5 text-[11px] font-semibold text-pending-text">
+                            {{ stats?.pending_appointments ?? 0 }} pending
+                        </span>
+                    </div>
+
+                    <div v-if="loading" class="animate-pulse h-[140px] bg-slate-100 rounded-[12px]"></div>
+
+                    <template v-else>
+                        <!-- Hero Card -->
+                        <div v-if="nextAppt" class="rounded-[12px] bg-dark-bg p-[14px_16px] mb-4">
+                            <p class="text-[11px] uppercase text-nav-inactive mb-1">Next Appointment</p>
+                            <p class="text-[17px] font-bold text-white">{{ nextAppt.pet_name || 'Unknown Pet' }}</p>
+                            <p class="text-[12.5px] text-nav-inactive mb-3">
+                                {{ nextAppt.reason || 'Checkup' }} • {{ formatDate(nextAppt.appointment_date) }} at {{ formatTime(nextAppt.time_slot) }}
+                            </p>
+                            
+                            <div class="mt-[12px] flex items-center justify-between border-t border-white/20 pt-[10px]">
+                                <div class="flex items-center gap-3 text-[12px] text-nav-inactive">
+                                    <span class="flex items-center gap-1"><i class="ti ti-stethoscope"></i> {{ nextAppt.vet_name || 'Unassigned' }}</span>
+                                    <!-- <span class="flex items-center gap-1"><i class="ti ti-user"></i> Owner Name</span> -->
+                                </div>
+                                <span class="rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-semibold text-[#EDE9FE] capitalize">
+                                    {{ nextAppt.status }}
+                                </span>
+                            </div>
                         </div>
-                        <div>
-                            <p class="text-sm font-medium text-slate-700">Manage Appointments</p>
-                            <p class="text-xs text-slate-400">Assign vets to pending bookings</p>
+
+                        <!-- List Rows -->
+                        <div class="flex flex-col">
+                            <div 
+                                v-for="(appt, index) in upcomingAppts" 
+                                :key="appt.appointment_id"
+                                :class="['flex items-center py-3', index !== upcomingAppts.length - 1 ? 'border-b border-surface' : '']"
+                            >
+                                <div class="h-[7px] w-[7px] shrink-0 rounded-full bg-primary mr-3 opacity-60"></div>
+                                <div class="flex flex-1 flex-col">
+                                    <span class="text-[13px] font-semibold text-dark-text">{{ appt.pet_name }}</span>
+                                    <span class="text-[11.5px] text-meta-text">{{ appt.reason }} • {{ appt.vet_name || 'Unassigned' }}</span>
+                                </div>
+                                <div class="flex flex-col items-end mr-3">
+                                    <span class="text-[11.5px] text-dark-text">{{ formatTime(appt.time_slot) }}</span>
+                                    <span class="text-[10px] text-meta-text">{{ formatDate(appt.appointment_date) }}</span>
+                                </div>
+                                <span 
+                                    v-if="appt.status === 'confirmed'" 
+                                    class="rounded-full bg-confirmed-bg px-2 py-0.5 text-[10px] font-semibold text-confirmed-text capitalize"
+                                >{{ appt.status }}</span>
+                                <span 
+                                    v-else-if="appt.status === 'completed'" 
+                                    class="rounded-full bg-completed-bg px-2 py-0.5 text-[10px] font-semibold text-completed-text capitalize"
+                                >{{ appt.status }}</span>
+                                <span 
+                                    v-else-if="appt.status === 'pending'" 
+                                    class="rounded-full bg-pending-bg px-2 py-0.5 text-[10px] font-semibold text-pending-text capitalize"
+                                >{{ appt.status }}</span>
+                                <span 
+                                    v-else 
+                                    class="rounded-full bg-surface px-2 py-0.5 text-[10px] font-semibold text-muted-text capitalize"
+                                >{{ appt.status }}</span>
+                            </div>
+                            <p v-if="upcomingAppts.length === 0" class="text-[12px] text-meta-text text-center py-4">No other upcoming appointments</p>
                         </div>
-                    </router-link>
+                    </template>
                 </div>
+
+                <!-- Veterinarians Panel -->
+                <div class="rounded-[16px] border border-card-border bg-white p-[18px] flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-[13.5px] font-bold text-dark-text">Veterinarians</h3>
+                        <span class="rounded-[100px] bg-completed-bg px-2 py-0.5 text-[11px] font-semibold text-completed-text">
+                            {{ stats?.approved_vets ?? 0 }} approved
+                        </span>
+                    </div>
+
+                    <div v-if="loading" class="flex-1 animate-pulse bg-slate-100 rounded-[12px]"></div>
+
+                    <div v-else class="flex-1 flex flex-col">
+                        <div 
+                            v-for="(vet, index) in vets" 
+                            :key="vet.id || index"
+                            :class="[
+                                'flex items-center py-3', 
+                                index !== vets.length - 1 ? 'border-b border-surface' : '',
+                                vet.status === 'pending' ? 'opacity-45' : ''
+                            ]"
+                        >
+                            <div class="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-chip-bg text-[11.5px] font-bold text-primary-dark mr-3 overflow-hidden">
+                                <img v-if="vet.profile_image_url" :src="vet.profile_image_url" class="h-full w-full object-cover" />
+                                <span v-else>{{ vet.name ? vet.name.charAt(0).toUpperCase() : 'V' }}</span>
+                            </div>
+                            <div class="flex flex-1 flex-col">
+                                <span class="text-[13px] font-semibold text-dark-text">{{ vet.name }}</span>
+                                <span class="text-[11.5px] text-meta-text">{{ vet.specialty || 'General Practice' }} • 0 appts today</span>
+                            </div>
+                            <span 
+                                v-if="vet.status === 'approved'" 
+                                class="rounded-[100px] bg-completed-bg px-2 py-0.5 text-[10px] font-semibold text-completed-text capitalize"
+                            >Approved</span>
+                            <span 
+                                v-else-if="vet.status === 'pending'" 
+                                class="rounded-[100px] bg-pending-bg px-2 py-0.5 text-[10px] font-semibold text-pending-text capitalize"
+                            >Pending</span>
+                            <span 
+                                v-else 
+                                class="rounded-[100px] bg-surface px-2 py-0.5 text-[10px] font-semibold text-muted-text capitalize"
+                            >{{ vet.status || 'Unknown' }}</span>
+                        </div>
+                        <p v-if="vets.length === 0" class="text-[12px] text-meta-text text-center py-4">No veterinarians found</p>
+                    </div>
+
+                    <div class="mt-auto pt-4 flex gap-2">
+                        <router-link to="/manager/veterinarians" class="flex-1 text-center rounded-[10px] bg-primary px-3 py-[9px] text-[12px] font-semibold text-white hover:bg-primary-dark transition-colors">
+                            Review vets
+                        </router-link>
+                    </div>
+                </div>
+
             </div>
         </div>
     </ManagerLayout>

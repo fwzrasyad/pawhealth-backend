@@ -162,8 +162,9 @@ function formatDate(iso) {
                                 <!-- Name & Email -->
                                 <td class="px-6 py-4">
                                     <div class="flex items-center gap-3">
-                                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-violet-600 text-sm font-bold text-white shadow-sm">
-                                            {{ user.name?.charAt(0)?.toUpperCase() || '?' }}
+                                        <div class="flex h-10 w-10 overflow-hidden items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-violet-600 text-sm font-bold text-white shadow-sm">
+                                            <img v-if="user.profile_image_url" :src="user.profile_image_url" class="h-full w-full object-cover" alt="User Profile" />
+                                            <span v-else>{{ user.name?.charAt(0)?.toUpperCase() || '?' }}</span>
                                         </div>
                                         <div>
                                             <p class="text-sm font-semibold text-slate-800">{{ user.name || 'Unnamed' }}</p>
@@ -243,8 +244,9 @@ function formatDate(iso) {
                                                 :key="pet.pet_id"
                                                 class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
                                             >
-                                                <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
-                                                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                                                <div class="flex h-11 w-11 items-center justify-center rounded-lg overflow-hidden bg-amber-100 text-amber-700">
+                                                    <img v-if="pet.profile_image_url" :src="pet.profile_image_url" class="h-full w-full object-cover" alt="Pet Profile" />
+                                                    <svg v-else class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
                                                         <path d="M12 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-4.5-2c-.83 0-1.5.67-1.5 1.5S6.67 11 7.5 11 9 10.33 9 9.5 8.33 8 7.5 8zm0 6c-.83 0-1.5.67-1.5 1.5S6.67 17 7.5 17 9 16.33 9 15.5 8.33 14 7.5 14zm9-6c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5S17.33 8 16.5 8zm0 6c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"/>
                                                     </svg>
                                                 </div>

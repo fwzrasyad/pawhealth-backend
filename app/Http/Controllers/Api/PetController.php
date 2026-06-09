@@ -5,11 +5,19 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PetResource;
 use App\Models\Pet;
+use App\Services\FirebaseStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 class PetController extends Controller
 {
+    protected $storageService;
+
+    public function __construct(FirebaseStorageService $storageService)
+    {
+        $this->storageService = $storageService;
+    }
+
     /**
      * GET /api/pets
      * List the authenticated owner's pets.
@@ -18,7 +26,7 @@ class PetController extends Controller
     {
         $pets = $request->user()
             ->pets()
-            ->with('healthJournals')
+            ->with(['healthJournals', 'vaccinations', 'recoveryPlans'])
             ->get();
 
         return PetResource::collection($pets);
@@ -38,7 +46,17 @@ class PetController extends Controller
             'gender'            => 'required|string|max:20',
             'weight'            => 'required|numeric|min:0',
             'profile_image_url' => 'nullable|string|url|max:2048',
+            'profile_image'     => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
+
+        // Handle file upload — takes priority over URL string
+        if ($request->hasFile('profile_image')) {
+            $validated['profile_image_url'] = $this->storageService->upload(
+                $request->file('profile_image'),
+                'pets'
+            );
+        }
+        unset($validated['profile_image']);
 
         $pet = $request->user()->pets()->create($validated);
 
@@ -53,7 +71,7 @@ class PetController extends Controller
     {
         $pet = $request->user()
             ->pets()
-            ->with('healthJournals')
+            ->with(['healthJournals', 'vaccinations', 'recoveryPlans'])
             ->where('pet_id', $petId)
             ->firstOrFail();
 
@@ -79,7 +97,20 @@ class PetController extends Controller
             'gender'            => 'sometimes|string|max:20',
             'weight'            => 'sometimes|numeric|min:0',
             'profile_image_url' => 'nullable|string|url|max:2048',
+            'profile_image'     => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
+
+        // Handle file upload — takes priority over URL string
+        if ($request->hasFile('profile_image')) {
+            // Delete old image
+            $this->storageService->delete($pet->profile_image_url);
+
+            $validated['profile_image_url'] = $this->storageService->upload(
+                $request->file('profile_image'),
+                'pets'
+            );
+        }
+        unset($validated['profile_image']);
 
         $pet->update($validated);
 
@@ -97,8 +128,12 @@ class PetController extends Controller
             ->where('pet_id', $petId)
             ->firstOrFail();
 
+        // Clean up image from Firebase Storage
+        $this->storageService->delete($pet->profile_image_url);
+
         $pet->delete();
 
         return response()->json(['message' => 'Pet deleted.'], Response::HTTP_OK);
     }
 }
+

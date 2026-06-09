@@ -21,6 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'firebase.auth' => \App\Http\Middleware\VerifyFirebaseToken::class,
             'super_admin'   => \App\Http\Middleware\EnsureSuperAdmin::class,
         ]);
+
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

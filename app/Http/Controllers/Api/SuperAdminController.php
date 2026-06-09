@@ -33,9 +33,7 @@ class SuperAdminController extends Controller
                     'phone'             => $clinic->phone,
                     'status'            => $clinic->status,
                     'license_file_path' => $clinic->license_file_path,
-                    'license_file_url'  => $clinic->license_file_path
-                        ? asset('storage/' . $clinic->license_file_path)
-                        : null,
+                    'license_file_url'  => $clinic->license_file_path,
                     'manager_name'      => $manager?->name ?? '—',
                     'manager_email'     => $manager?->email ?? '—',
                     'created_at'        => $clinic->created_at?->toIso8601String(),

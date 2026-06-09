@@ -108,30 +108,11 @@ function formatTime(iso) {
     });
 }
 
-function statusColor(status) {
-    switch (status) {
-        case 'pending':   return 'bg-amber-50 text-amber-700 ring-amber-600/10';
-        case 'confirmed': return 'bg-emerald-50 text-emerald-700 ring-emerald-600/10';
-        case 'completed': return 'bg-slate-100 text-slate-600 ring-slate-500/10';
-        case 'cancelled': return 'bg-red-50 text-red-600 ring-red-500/10';
-        default:          return 'bg-slate-50 text-slate-700 ring-slate-600/10';
-    }
-}
-
-function statusDotColor(status) {
-    switch (status) {
-        case 'pending':   return 'bg-amber-500';
-        case 'confirmed': return 'bg-emerald-500';
-        case 'completed': return 'bg-slate-400';
-        case 'cancelled': return 'bg-red-500';
-        default:          return 'bg-slate-400';
-    }
-}
 </script>
 
 <template>
     <ManagerLayout>
-        <div class="space-y-6">
+        <div class="space-y-[24px]">
             <!-- Toast Notification -->
             <transition
                 enter-active-class="transition duration-300 ease-out"
@@ -144,25 +125,20 @@ function statusDotColor(status) {
                 <div
                     v-if="toast.show"
                     :class="[
-                        'fixed right-6 top-6 z-50 flex items-center gap-3 rounded-xl px-5 py-3.5 text-sm font-medium shadow-lg backdrop-blur-sm',
+                        'fixed right-6 top-6 z-50 flex items-center gap-3 rounded-[12px] px-5 py-3.5 text-sm font-medium',
                         toast.type === 'success'
-                            ? 'bg-emerald-600/95 text-white'
-                            : 'bg-red-600/95 text-white',
+                            ? 'bg-[#15803D] text-white'
+                            : 'bg-[#B45309] text-white',
                     ]"
                 >
                     <!-- Success icon -->
-                    <svg v-if="toast.type === 'success'" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <i v-if="toast.type === 'success'" class="ti ti-check text-[20px]"></i>
                     <!-- Error icon -->
-                    <svg v-else class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-                    </svg>
+                    <i v-else class="ti ti-alert-circle text-[20px]"></i>
+                    
                     {{ toast.message }}
                     <button @click="toast.show = false" class="ml-2 rounded-lg p-1 transition-colors hover:bg-white/20">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                        <i class="ti ti-x"></i>
                     </button>
                 </div>
             </transition>
@@ -170,18 +146,18 @@ function statusDotColor(status) {
             <!-- Page Header -->
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h2 class="text-2xl font-bold text-slate-900">Appointments</h2>
-                    <p class="mt-1 text-sm text-slate-500">Review incoming requests and update appointment statuses.</p>
+                    <h2 class="text-[24px] font-bold text-dark-text tracking-[-0.4px]">Appointments</h2>
+                    <p class="mt-1 text-[13px] font-normal text-meta-text">Review incoming requests and update appointment statuses.</p>
                 </div>
 
                 <!-- Summary badges -->
                 <div class="flex items-center gap-3">
-                    <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/10">
-                        <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                    <span class="inline-flex items-center gap-1.5 rounded-[100px] bg-pending-bg px-3 py-1 text-xs font-semibold text-pending-text">
+                        <span class="h-1.5 w-1.5 rounded-full bg-pending-text"></span>
                         {{ pendingCount }} Pending
                     </span>
-                    <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/10">
-                        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                    <span class="inline-flex items-center gap-1.5 rounded-[100px] bg-confirmed-bg px-3 py-1 text-xs font-semibold text-confirmed-text">
+                        <span class="h-1.5 w-1.5 rounded-full bg-confirmed-text"></span>
                         {{ confirmedCount }} Confirmed
                     </span>
                 </div>
@@ -190,7 +166,7 @@ function statusDotColor(status) {
             <!-- Tab Bar + Search -->
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <!-- Tabs -->
-                <div class="flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+                <div class="flex rounded-[10px] border border-card-border bg-white p-1">
                     <button
                         v-for="tab in [
                             { key: 'pending',   label: 'Pending',   count: pendingCount },
@@ -200,19 +176,19 @@ function statusDotColor(status) {
                         :key="tab.key"
                         @click="activeTab = tab.key"
                         :class="[
-                            'flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200',
+                            'flex items-center gap-2 rounded-[8px] px-4 py-2 text-[13px] font-semibold transition-all duration-200',
                             activeTab === tab.key
-                                ? 'bg-violet-600 text-white shadow-sm'
-                                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700',
+                                ? 'bg-primary text-white'
+                                : 'text-meta-text hover:bg-surface hover:text-dark-text',
                         ]"
                     >
                         {{ tab.label }}
                         <span
                             :class="[
-                                'inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-xs font-bold',
+                                'inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-[100px] px-1 text-[10px] font-bold',
                                 activeTab === tab.key
                                     ? 'bg-white/20 text-white'
-                                    : 'bg-slate-100 text-slate-500',
+                                    : 'bg-surface text-meta-text',
                             ]"
                         >
                             {{ tab.count }}
@@ -221,15 +197,13 @@ function statusDotColor(status) {
                 </div>
 
                 <!-- Search -->
-                <div class="relative max-w-md">
-                    <svg class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                    </svg>
+                <div class="relative max-w-md flex-1">
+                    <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-meta-text text-[18px]"></i>
                     <input
                         v-model="search"
                         type="text"
                         placeholder="Search by pet name, vet, or reason…"
-                        class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-700 outline-none ring-1 ring-transparent transition-all placeholder:text-slate-400 focus:border-violet-300 focus:ring-violet-200"
+                        class="w-full rounded-[10px] border border-card-border bg-white py-[9px] pl-10 pr-4 text-[13px] text-dark-text outline-none transition-all placeholder:text-meta-text focus:border-primary"
                     />
                 </div>
             </div>
@@ -238,106 +212,114 @@ function statusDotColor(status) {
             <TableSkeleton v-if="loading" :columns="6" :rows="6" />
 
             <!-- Data Table -->
-            <div v-else class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+            <div v-else class="overflow-hidden rounded-[16px] border border-card-border bg-white">
                 <!-- Empty state -->
                 <div v-if="filteredAppointments.length === 0" class="flex flex-col items-center justify-center py-16 text-center">
-                    <div class="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 mb-4">
-                        <svg class="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                        </svg>
+                    <div class="flex h-16 w-16 items-center justify-center rounded-full bg-surface mb-4">
+                        <i class="ti ti-calendar text-[24px] text-meta-text"></i>
                     </div>
-                    <p class="text-sm font-medium text-slate-600">No {{ activeTab !== 'all' ? activeTab : '' }} appointments found</p>
-                    <p class="mt-1 text-xs text-slate-400">{{ search ? 'Try adjusting your search.' : 'Appointments will appear here once booked by pet owners.' }}</p>
+                    <p class="text-[14px] font-semibold text-dark-text">No {{ activeTab !== 'all' ? activeTab : '' }} appointments found</p>
+                    <p class="mt-1 text-[13px] text-meta-text">{{ search ? 'Try adjusting your search.' : 'Appointments will appear here once booked by pet owners.' }}</p>
                 </div>
 
                 <!-- Table -->
                 <table v-else class="w-full">
                     <thead>
-                        <tr class="border-b border-slate-100 bg-slate-50/50">
-                            <th class="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Pet</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Date & Time</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Reason</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Veterinarian</th>
-                            <th class="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Action</th>
+                        <tr class="border-b border-surface bg-surface/30">
+                            <th class="px-6 py-[14px] text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-meta-text">Pet</th>
+                            <th class="px-6 py-[14px] text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-meta-text">Date & Time</th>
+                            <th class="px-6 py-[14px] text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-meta-text">Reason</th>
+                            <th class="px-6 py-[14px] text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-meta-text">Status</th>
+                            <th class="px-6 py-[14px] text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-meta-text">Veterinarian</th>
+                            <th class="px-6 py-[14px] text-right text-[11px] font-semibold uppercase tracking-[0.06em] text-meta-text">Action</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100">
+                    <tbody class="divide-y divide-surface">
                         <tr
                             v-for="appt in filteredAppointments"
                             :key="appt.appointment_id"
                             :class="[
-                                'transition-colors',
-                                appt.status === 'pending' ? 'bg-amber-50/30 hover:bg-amber-50/60' : 'hover:bg-slate-50/50',
+                                'transition-colors hover:bg-surface/50',
+                                appt.status === 'pending' ? 'bg-pending-bg/30' : '',
                             ]"
                         >
                             <!-- Pet -->
-                            <td class="px-6 py-4">
+                            <td class="px-6 py-[16px]">
                                 <div class="flex items-center gap-3">
-                                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-sm font-bold text-white shadow-sm">
-                                        {{ appt.pet_name?.charAt(0)?.toUpperCase() || '?' }}
+                                    <div class="h-[7px] w-[7px] shrink-0 rounded-full bg-primary opacity-60"></div>
+                                    <div class="flex h-[34px] w-[34px] overflow-hidden items-center justify-center rounded-full bg-chip-bg text-[11.5px] font-bold text-primary-dark">
+                                        <img v-if="appt.pet?.profile_image_url" :src="appt.pet.profile_image_url" class="h-full w-full object-cover" alt="Pet Profile" />
+                                        <span v-else>{{ appt.pet_name?.charAt(0)?.toUpperCase() || '?' }}</span>
                                     </div>
                                     <div>
-                                        <p class="text-sm font-semibold text-slate-800">{{ appt.pet_name || 'Unknown' }}</p>
-                                        <p class="text-xs text-slate-400 font-mono">{{ appt.appointment_id?.slice(0, 8) }}…</p>
+                                        <p class="text-[13px] font-semibold text-dark-text">{{ appt.pet_name || 'Unknown' }}</p>
+                                        <p class="text-[11.5px] text-meta-text font-mono">{{ appt.appointment_id?.slice(0, 8) }}…</p>
                                     </div>
                                 </div>
                             </td>
 
                             <!-- Date & Time -->
-                            <td class="px-6 py-4">
-                                <p class="text-sm font-medium text-slate-700">{{ formatDate(appt.appointment_date) }}</p>
-                                <p class="text-xs text-slate-400">{{ formatTime(appt.time_slot) }}</p>
+                            <td class="px-6 py-[16px]">
+                                <p class="text-[13px] font-medium text-dark-text">{{ formatTime(appt.time_slot) }}</p>
+                                <p class="text-[11.5px] text-meta-text">{{ formatDate(appt.appointment_date) }}</p>
                             </td>
 
                             <!-- Reason -->
-                            <td class="px-6 py-4">
-                                <p class="max-w-[200px] truncate text-sm text-slate-600" :title="appt.reason">
+                            <td class="px-6 py-[16px]">
+                                <p class="max-w-[200px] truncate text-[13px] text-dark-text" :title="appt.reason">
                                     {{ appt.reason || '—' }}
                                 </p>
                             </td>
 
                             <!-- Status Badge -->
-                            <td class="px-6 py-4">
-                                <span
-                                    :class="statusColor(appt.status)"
-                                    class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1 ring-inset"
-                                >
-                                    <span :class="statusDotColor(appt.status)" class="h-1.5 w-1.5 rounded-full"></span>
-                                    {{ appt.status }}
-                                </span>
+                            <td class="px-6 py-[16px]">
+                                <span 
+                                    v-if="appt.status === 'confirmed'" 
+                                    class="rounded-[100px] bg-confirmed-bg px-2 py-0.5 text-[11px] font-semibold text-confirmed-text capitalize"
+                                >{{ appt.status }}</span>
+                                <span 
+                                    v-else-if="appt.status === 'completed'" 
+                                    class="rounded-[100px] bg-completed-bg px-2 py-0.5 text-[11px] font-semibold text-completed-text capitalize"
+                                >{{ appt.status }}</span>
+                                <span 
+                                    v-else-if="appt.status === 'pending'" 
+                                    class="rounded-[100px] bg-pending-bg px-2 py-0.5 text-[11px] font-semibold text-pending-text capitalize"
+                                >{{ appt.status }}</span>
+                                <span 
+                                    v-else 
+                                    class="rounded-[100px] bg-surface px-2 py-0.5 text-[11px] font-semibold text-muted-text capitalize"
+                                >{{ appt.status }}</span>
                             </td>
 
                             <!-- Veterinarian -->
-                            <td class="px-6 py-4">
+                            <td class="px-6 py-[16px]">
                                 <div class="flex items-center gap-2">
-                                    <div class="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-xs font-bold text-white">
-                                        {{ appt.vet_name ? appt.vet_name.charAt(0).toUpperCase() : 'V' }}
+                                    <div class="flex h-[28px] w-[28px] overflow-hidden items-center justify-center rounded-full bg-chip-bg text-[11px] font-bold text-primary-dark">
+                                        <img v-if="appt.veterinarian?.profile_image_url" :src="appt.veterinarian.profile_image_url" class="h-full w-full object-cover" alt="Vet Profile" />
+                                        <span v-else>{{ appt.vet_name ? appt.vet_name.charAt(0).toUpperCase() : 'V' }}</span>
                                     </div>
-                                    <span class="text-sm font-medium text-slate-700">{{ appt.vet_name || '—' }}</span>
+                                    <span class="text-[13px] font-medium text-dark-text">{{ appt.vet_name || '—' }}</span>
                                 </div>
                             </td>
 
                             <!-- Action -->
-                            <td class="px-6 py-4 text-right">
+                            <td class="px-6 py-[16px] text-right">
                                 <!-- Pending Actions -->
                                 <div v-if="appt.status === 'pending'" class="flex items-center justify-end gap-2">
                                     <button
                                         @click="updateAppointmentStatus(appt.appointment_id, 'cancelled')"
                                         :disabled="updatingId === appt.appointment_id"
-                                        class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors disabled:opacity-50"
+                                        class="inline-flex items-center rounded-[10px] px-3 py-[7px] text-[11.5px] font-semibold text-[#B45309] hover:bg-[#FEF3C7] transition-colors disabled:opacity-50"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         @click="updateAppointmentStatus(appt.appointment_id, 'confirmed')"
                                         :disabled="updatingId === appt.appointment_id"
-                                        class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-emerald-700 hover:shadow-md active:scale-95 transition-all disabled:opacity-60"
+                                        class="inline-flex items-center rounded-[10px] bg-primary px-3 py-[7px] text-[11.5px] font-semibold text-white hover:bg-primary-dark transition-all disabled:opacity-60"
                                     >
-                                        <div v-if="updatingId === appt.appointment_id" class="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                                        <svg v-else class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                                        </svg>
+                                        <div v-if="updatingId === appt.appointment_id" class="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent mr-1"></div>
+                                        <i v-else class="ti ti-check mr-1 text-[14px]"></i>
                                         Confirm
                                     </button>
                                 </div>
@@ -347,26 +329,24 @@ function statusDotColor(status) {
                                     <button
                                         @click="updateAppointmentStatus(appt.appointment_id, 'completed')"
                                         :disabled="updatingId === appt.appointment_id"
-                                        class="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 border border-slate-200 px-3.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-200 active:scale-95 transition-all disabled:opacity-60"
+                                        class="inline-flex items-center rounded-[10px] bg-chip-bg px-3 py-[7px] text-[11.5px] font-semibold text-primary-dark hover:bg-card-border transition-all disabled:opacity-60"
                                     >
-                                        <div v-if="updatingId === appt.appointment_id" class="h-3 w-3 animate-spin rounded-full border-2 border-slate-500 border-t-transparent"></div>
-                                        <svg v-else class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
+                                        <div v-if="updatingId === appt.appointment_id" class="h-3 w-3 animate-spin rounded-full border-2 border-primary-dark border-t-transparent mr-1"></div>
+                                        <i v-else class="ti ti-check mr-1 text-[14px]"></i>
                                         Mark Completed
                                     </button>
                                 </div>
 
                                 <!-- Other states just show text -->
-                                <span v-else class="text-xs text-slate-400 capitalize">{{ appt.status }}</span>
+                                <span v-else class="text-[11.5px] text-meta-text capitalize">{{ appt.status }}</span>
                             </td>
                         </tr>
                     </tbody>
                 </table>
 
                 <!-- Footer -->
-                <div class="border-t border-slate-100 bg-slate-50/30 px-6 py-3">
-                    <p class="text-xs text-slate-400">
+                <div class="border-t border-surface bg-surface/30 px-6 py-4">
+                    <p class="text-[12px] text-meta-text">
                         Showing {{ filteredAppointments.length }} of {{ appointments.length }} appointment{{ appointments.length !== 1 ? 's' : '' }}
                     </p>
                 </div>

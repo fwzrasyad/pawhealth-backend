@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\AppointmentResource;
 use App\Models\Appointment;
+use App\Models\User;
+use App\Notifications\AppointmentStatusNotification;
+use App\Notifications\NewAppointmentAssignedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
@@ -22,14 +25,14 @@ class AppointmentController extends Controller
 
         if ($user->role === 'vet') {
             $appointments = Appointment::where('vet_id', $user->user_id)
-                ->with('medicalRecord')
+                ->with(['medicalRecord', 'pet.owner'])
                 ->orderByDesc('appointment_date')
                 ->get();
         } else {
             // Owner: get appointments for all their pets
             $petIds = $user->pets()->pluck('pet_id');
             $appointments = Appointment::whereIn('pet_id', $petIds)
-                ->with('medicalRecord')
+                ->with(['medicalRecord', 'pet.owner'])
                 ->orderByDesc('appointment_date')
                 ->get();
         }
@@ -44,14 +47,15 @@ class AppointmentController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'clinic_id'        => 'required|string|exists:clinics,clinic_id',
-            'pet_id'           => 'required|string|exists:pets,pet_id',
-            'pet_name'         => 'required|string|max:255',
-            'vet_id'           => 'required|string|exists:veterinarians,vet_id',
-            'vet_name'         => 'required|string|max:255',
-            'reason'           => 'required|string',
-            'appointment_date' => 'required|date',
-            'time_slot'        => 'required|date',
+            'clinic_id'         => 'required|string|exists:clinics,clinic_id',
+            'pet_id'            => 'required|string|exists:pets,pet_id',
+            'pet_name'          => 'required|string|max:255',
+            'vet_id'            => 'required|string|exists:veterinarians,vet_id',
+            'vet_name'          => 'required|string|max:255',
+            'reason'            => 'required|string',
+            'appointment_date'  => 'required|date',
+            'time_slot'         => 'required|date',
+            'consultation_type' => 'nullable|string|in:in_person,virtual',
         ]);
 
         $timeSlot = \Carbon\Carbon::parse($validated['time_slot']);
@@ -69,7 +73,8 @@ class AppointmentController extends Controller
         }
 
         $appointment = Appointment::create(array_merge($validated, [
-            'status' => 'pending',
+            'status'            => 'pending',
+            'consultation_type' => $validated['consultation_type'] ?? 'in_person',
         ]));
 
         return new AppointmentResource($appointment);
@@ -90,7 +95,23 @@ class AppointmentController extends Controller
             'time_slot'        => 'sometimes|date',
         ]);
 
+        $originalStatus = $appointment->status;
         $appointment->update($validated);
+
+        if (isset($validated['status']) && $validated['status'] === 'confirmed' && $originalStatus !== 'confirmed') {
+            // Notify Pet Owner
+            if ($appointment->pet && $appointment->pet->owner) {
+                $appointment->pet->owner->notify(new AppointmentStatusNotification($appointment->appointment_id, 'confirmed'));
+            }
+
+            // Notify Veterinarian
+            if ($appointment->vet_id) {
+                $vetUser = User::where('user_id', $appointment->vet_id)->first();
+                if ($vetUser) {
+                    $vetUser->notify(new NewAppointmentAssignedNotification($appointment->appointment_id));
+                }
+            }
+        }
 
         return new AppointmentResource($appointment->fresh());
     }

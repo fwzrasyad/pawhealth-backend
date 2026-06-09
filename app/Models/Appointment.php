@@ -26,13 +26,24 @@ class Appointment extends Model
         'appointment_date',
         'time_slot',
         'status',
+        'amount',
+        'payment_intent_id',
+        'payment_status',
+        'consultation_type',
+        'video_call_channel',
+        'video_call_status',
+        'video_call_started_at',
+        'video_call_ended_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'appointment_date' => 'datetime',
-            'time_slot'        => 'datetime',
+            'appointment_date'      => 'datetime',
+            'time_slot'             => 'datetime',
+            'amount'                => 'decimal:2',
+            'video_call_started_at' => 'datetime',
+            'video_call_ended_at'   => 'datetime',
         ];
     }
 

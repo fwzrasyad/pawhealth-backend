@@ -12,6 +12,7 @@ import AppointmentsView   from './views/AppointmentsView.vue';
 import PendingVerificationView from './views/PendingVerificationView.vue';
 import RegisterView from './views/RegisterView.vue';
 import SuperAdminDashboard from './views/SuperAdminDashboard.vue';
+import ClinicProfileView from './views/ClinicProfileView.vue';
 import { useApi } from './composables/useApi.js';
 
 const routes = [
@@ -55,6 +56,12 @@ const routes = [
         path: '/manager/appointments',
         name: 'Appointments',
         component: AppointmentsView,
+        meta: { requiresAuth: true },
+    },
+    {
+        path: '/manager/clinic',
+        name: 'ClinicProfile',
+        component: ClinicProfileView,
         meta: { requiresAuth: true },
     },
     // ── Super Admin ──

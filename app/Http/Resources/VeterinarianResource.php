@@ -17,6 +17,7 @@ class VeterinarianResource extends JsonResource
             'specialties'       => $this->specialties ?? [],
             'bio'               => $this->bio,
             'weekly_schedule'   => $this->weekly_schedule ?? (object) [],
+            'consultation_fee'  => $this->consultation_fee,
             'available_slots'   => $this->whenLoaded('availableSlots', function () {
                 return $this->availableSlots
                     ->pluck('slot_datetime')
